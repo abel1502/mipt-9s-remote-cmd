@@ -1,15 +1,19 @@
 #include "Process.hpp"
 
+#include <stdexcept>
+
+namespace abel {
+
 Process Process::create(
-    std::wstring_view executable,
-    std::wstring_view arguments,
-    std::wstring_view workingDirectory,
+    const std::wstring &executable,
+    const std::wstring &arguments,
+    const std::wstring &workingDirectory,
     bool inheritHandles,
     DWORD creationFlags,
     DWORD startupFlags,
-    Handle stdInput,
-    Handle stdOutput,
-    Handle stdError,
+    HANDLE stdInput,
+    HANDLE stdOutput,
+    HANDLE stdError,
     std::function<void(STARTUPINFO &)> extraParams
 ) {
     PROCESS_INFORMATION processInfo{};
@@ -20,30 +24,38 @@ Process Process::create(
     fullArgs.append(L" ");
     fullArgs.append(arguments);
 
+    if (stdInput || stdOutput || stdError) {
+        startupFlags |= STARTF_USESTDHANDLES;
+    }
+
     STARTUPINFO startupInfo{
         .cb = sizeof(STARTUPINFO),
         .dwFlags = startupFlags,
-        .hStdInput = stdInput.raw(),
-        .hStdOutput = stdOutput.raw(),
-        .hStdError = stdError.raw(),
+        .hStdInput = stdInput,
+        .hStdOutput = stdOutput,
+        .hStdError = stdError,
     };
 
     if (extraParams) {
         extraParams(startupInfo);
     }
 
-    CreateProcess(
-        executable.data(),
+    bool success = CreateProcess(
+        executable.c_str(),
         fullArgs.data(),
         nullptr,
         nullptr,
         inheritHandles,
         creationFlags,
         nullptr,
-        workingDirectory.data(),
+        workingDirectory.size() > 0 ? workingDirectory.c_str() : nullptr,
         &startupInfo,
         &processInfo
     );
+
+    if (!success) {
+        throw std::runtime_error("Failed to create process");
+    }
 
     Handle process{processInfo.hProcess};
     Handle thread{processInfo.hThread};
@@ -57,10 +69,8 @@ Process Process::create(
     result.pid = processInfo.dwProcessId;
     result.thread = std::move(thread);
     result.tid = processInfo.dwThreadId;
-    result.stdInput = std::move(stdInput);
-    result.stdOutput = std::move(stdOutput);
-    result.stdError = std::move(stdError);
 
     return result;
-
 }
+
+}  // namespace abel

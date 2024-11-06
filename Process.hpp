@@ -1,40 +1,41 @@
 #pragma once
 
 #include <Windows.h>
-#include <exception>
-#include <stdexcept>
 #include <utility>
+#include <string>
 #include <string_view>
 #include <functional>
 
 #include "Handle.hpp"
 
+namespace abel {
+
 class Process {
 protected:
+    Process() {}
+
+public:
+    // TODO: Make fields protected?
     Handle process{};
     DWORD pid{};
     Handle thread{};
     DWORD tid{};
-    Handle stdInput{};
-    Handle stdOutput{};
-    Handle stdError{};
 
-    Process() {}
-
-public:
     constexpr Process(Process &&other) noexcept = default;
     constexpr Process &operator=(Process &&other) noexcept = default;
 
     static Process create(
-        std::wstring_view executable,
-        std::wstring_view arguments = L"",
-        std::wstring_view workingDirectory = nullptr,
+        const std::wstring &executable,
+        const std::wstring &arguments = L"",
+        const std::wstring &workingDirectory = L"",
         bool inheritHandles = false,
         DWORD creationFlags = 0,
         DWORD startupFlags = 0,
-        Handle stdInput = nullptr,
-        Handle stdOutput = nullptr,
-        Handle stdError = nullptr,
+        HANDLE stdInput = NULL,
+        HANDLE stdOutput = NULL,
+        HANDLE stdError = NULL,
         std::function<void(STARTUPINFO &)> extraParams = nullptr
     );
 };
+
+}  // namespace abel

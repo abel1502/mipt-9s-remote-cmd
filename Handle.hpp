@@ -4,6 +4,12 @@
 #include <exception>
 #include <stdexcept>
 #include <utility>
+#include <vector>
+#include <span>
+#include <cstdint>
+
+
+namespace abel {
 
 class Handle {
 protected:
@@ -56,5 +62,21 @@ public:
         return value;
     }
 
+    constexpr const HANDLE *raw_ptr() const noexcept {
+        return &value;
+    }
+
+    constexpr HANDLE *raw_ptr() noexcept {
+        return &value;
+    }
+
     Handle clone() const;
+
+    // TODO: Async support (either here or in a separate wrapper around OVERLAPPED)
+
+    std::vector<std::uint8_t> read(size_t size, bool exact = true) const;
+
+    size_t write(std::span<const std::uint8_t> data, bool exact = true) const;
 };
+
+}  // namespace abel
