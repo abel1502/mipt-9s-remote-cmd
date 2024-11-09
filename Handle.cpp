@@ -22,50 +22,50 @@ Handle Handle::clone() const {
     return result;
 }
 
-std::vector<std::uint8_t> Handle::read(size_t size, bool exact) const {
-    std::vector<std::uint8_t> data(size);
-
-    do {
-        DWORD read = 0;
-        bool success = ReadFile(
-            raw(),
-            data.data() + data.size() - size,
-            (DWORD)size,
-            &read,
-            nullptr
-        );
-
-        if (!success) {
-            throw std::runtime_error("Failed to read from handle");
-        }
-
-        size -= read;
-    } while (exact && size != 0);
-
-    return data;
-}
-
-size_t Handle::write(std::span<const std::uint8_t> data, bool exact) const {
-    size_t total = 0;
-
-    do {
-        DWORD written = 0;
-        bool success = WriteFile(
-            raw(),
-            data.data() + total,
-            (DWORD)data.size() - total,
-            &written,
-            nullptr
-        );
-
-        if (!success) {
-            throw std::runtime_error("Failed to write to handle");
-        }
-
-        total += written;
-    } while (exact && total != data.size());
-
-    return total;
-}
+//std::vector<std::uint8_t> Handle::read(size_t size, bool exact) const {
+//    std::vector<std::uint8_t> data(size);
+//    DWORD read = 0;
+//
+//    do {
+//        bool success = ReadFile(
+//            raw(),
+//            data.data() + data.size() - size,
+//            (DWORD)size,
+//            &read,
+//            nullptr
+//        );
+//
+//        if (!success) {
+//            throw std::runtime_error("Failed to read from handle");
+//        }
+//
+//        size -= read;
+//    } while (exact && size != 0 && read > 0);
+//
+//    return data;
+//}
+//
+//size_t Handle::write(std::span<const std::uint8_t> data, bool exact) const {
+//    size_t total = 0;
+//
+//    do {
+//        DWORD written = 0;
+//        bool success = WriteFile(
+//            raw(),
+//            data.data() + total,
+//            (DWORD)data.size() - total,
+//            &written,
+//            nullptr
+//        );
+//
+//        if (!success) {
+//            throw std::runtime_error("Failed to write to handle");
+//        }
+//
+//        total += written;
+//    } while (exact && total != data.size());
+//
+//    return total;
+//}
 
 }  // namespace abel

@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Handle.hpp" />
+    <ClInclude Include="HandleStream.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
   </ItemGroup>

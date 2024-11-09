@@ -7,6 +7,7 @@
 #include <vector>
 #include <span>
 #include <cstdint>
+#include <optional>
 
 
 namespace abel {
@@ -74,9 +75,9 @@ public:
 
     // TODO: Async support (either here or in a separate wrapper around OVERLAPPED)
 
-    std::vector<std::uint8_t> read(size_t size, bool exact = true) const;
+    // std::vector<std::uint8_t> read(size_t size, bool exact = true) const;
 
-    size_t write(std::span<const std::uint8_t> data, bool exact = true) const;
+    // size_t write(std::span<const std::uint8_t> data, bool exact = true) const;
 };
 
 }  // namespace abel

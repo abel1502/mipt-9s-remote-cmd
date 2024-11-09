@@ -19,7 +19,7 @@ Process Process::create(
     PROCESS_INFORMATION processInfo{};
 
     std::wstring fullArgs{};
-    fullArgs.reserve(arguments.size() + executable.size() + 1);
+    fullArgs.reserve(arguments.size() + executable.size() + 2);
     fullArgs.append(executable);
     fullArgs.append(L" ");
     fullArgs.append(arguments);
