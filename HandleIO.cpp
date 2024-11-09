@@ -1,0 +1,41 @@
+#include "HandleIO.hpp"
+
+#include <stdexcept>
+#include <cassert>
+
+namespace abel {
+
+size_t HandleIO::read_into(std::span<unsigned char> data) {
+    DWORD read = 0;
+    bool success = ReadFile(source, data.data(), data.size(), &read, nullptr);
+    if (!success) {
+        throw std::runtime_error("Failed to read from handle");
+    }
+
+    eof = read == 0;
+
+    return read;
+}
+
+void HandleIO::read_full_into(std::span<unsigned char> data) {
+    while (data.size() > 0 && !eof) {
+        size_t read = read_into(data);
+        data = data.subspan(read);
+    }
+
+    if (eof) {
+        throw std::runtime_error("End of stream reached prematurely");
+    }
+}
+
+void HandleIO::write_from(std::span<const unsigned char> data) {
+    DWORD written = 0;
+    bool success = WriteFile(source, data.data(), data.size(), &written, nullptr);
+    if (!success) {
+        throw std::runtime_error("Failed to write to handle");
+    }
+    // MSDN seems to imply a successful WriteFile call always writes the entire buffer
+    assert(written == data.size());
+}
+
+}  // namespace abel

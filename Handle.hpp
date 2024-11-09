@@ -9,6 +9,9 @@
 #include <cstdint>
 #include <optional>
 
+#include "HandleStream.hpp"
+#include "Owning.hpp"
+
 
 namespace abel {
 
@@ -73,11 +76,13 @@ public:
 
     Handle clone() const;
 
-    // TODO: Async support (either here or in a separate wrapper around OVERLAPPED)
+    HandleIO io() const {
+        return HandleIO(value);
+    }
 
-    // std::vector<std::uint8_t> read(size_t size, bool exact = true) const;
-
-    // size_t write(std::span<const std::uint8_t> data, bool exact = true) const;
+    Owning<HandleIO, Handle> owning_io() {
+        return Owning<HandleIO, Handle>(io(), std::move(*this));
+    }
 };
 
 }  // namespace abel

@@ -77,13 +77,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Handle.cpp" />
+    <ClCompile Include="HandleIO.cpp" />
+    <ClCompile Include="Owning.hpp" />
     <ClCompile Include="Pipe.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="RemoteCMD.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Handle.hpp" />
-    <ClInclude Include="HandleStream.hpp" />
+    <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
   </ItemGroup>
