@@ -12,6 +12,9 @@ protected:
     constexpr Sync(HANDLE handle) : Handle(handle) {}
 
 public:
+    constexpr Sync() : Handle() {}
+    constexpr Sync(nullptr_t) : Handle(nullptr) {}
+
     constexpr Sync(Sync &&other) noexcept = default;
     constexpr Sync &operator=(Sync &&other) noexcept = default;
 

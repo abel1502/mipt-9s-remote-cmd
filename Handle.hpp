@@ -48,6 +48,10 @@ public:
         }
     }
 
+    constexpr operator bool() const noexcept {
+        return value != NULL;
+    }
+
     template <typename Self>
     constexpr Self &&validate(this Self &&self) {
         if (self.value == NULL || self.value == INVALID_HANDLE_VALUE) {

@@ -53,36 +53,60 @@ void HandleIO::cancel_async() {
     CancelIo(source);
 }
 
-Sync HandleIO::read_async(std::span<unsigned char> data, DWORD *read) {
-    Sync done = Sync::create_event(true);  // TODO: Maybe different parameters?
+size_t HandleIO::Future::get_result(DWORD miliseconds) {
+    DWORD transmitted = 0;
+    bool success = GetOverlappedResultEx(
+        source,
+        overlapped.get(),
+        &transmitted,
+        miliseconds,
+        false
+    );
 
-    OVERLAPPED ovl{.hEvent = done.raw()};
+    if (!success) {
+        throw std::runtime_error("Failed to get overlapped operation result");
+    }
+
+    // TODO: Perhaps a GetLastError check is necessary instead?
+    eof = (transmitted == 0);
+
+    return transmitted;
+}
+
+HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Sync doneEvent) {
+    Future result{source, std::move(doneEvent)};
+
     bool success = ReadFile(
         source,
         data.data(),
         data.size(),
-        read,
-        &ovl
+        nullptr,
+        result.overlapped.get()
     );
-    // TODO: Check success and GetLastError for IO pending
 
-    return done;
+    if (!success && GetLastError() != ERROR_IO_PENDING) {
+        throw std::runtime_error("Failed to initiate asynchronous read from handle");
+    }
+
+    return result;
 }
 
-Sync HandleIO::write_async(std::span<const unsigned char> data, DWORD *written) {
-    Sync done = Sync::create_event(true);  // TODO: Maybe different parameters?
+HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, Sync doneEvent) {
+    Future result{source, std::move(doneEvent)};
 
-    OVERLAPPED ovl{.hEvent = done.raw()};
     bool success = WriteFile(
         source,
         data.data(),
         data.size(),
-        written,
-        &ovl
+        nullptr,
+        result.overlapped.get()
     );
-    // TODO: Check success and GetLastError for IO pending
 
-    return done;
+    if (!success && GetLastError() != ERROR_IO_PENDING) {
+        throw std::runtime_error("Failed to initiate asynchronous write to handle");
+    }
+
+    return result;
 }
 
 }  // namespace abel

@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <vector>
+#include <memory>
 
 #include "Handle.hpp"
 #include "Sync.hpp"
@@ -43,15 +44,42 @@ public:
     // Cancels all pending async operations on this handle
     void cancel_async();
 
-    // TODO: OVERLAPPED must be preserved for the duration of the asynchronous operation, gotta return it alongside the event
-    // TODO: Also gotta use GetOverlappedResult to extract the read/written count and the status.
-    // TODO: Gotta mark the return nodiscard
+    // TODO: Think really hard about the proper design for a winapi future
+    // Returned by async read-write APIs
+    class Future {
+    protected:
+        HANDLE source;
+        std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
+        bool eof = false;
 
-    // Same as read_into, but returns an event signaling the completion of the operation. If read is not null, returns the number of bytes read
-    Sync read_async(std::span<unsigned char> data, DWORD *read = nullptr);
+        inline Future(HANDLE source, Sync done) :
+            source{source},
+            done{std::move(done)} {
+
+            overlapped->hEvent = this->done.raw();
+        }
+
+        friend HandleIO;
+
+    public:
+        // The event signaling the completion of the operation.
+        Sync done;
+
+        // Returns the number of bytes read/written. If a timeout is provided (supports INFINITE), blocks until the operation completes
+        // Without a timeout, fails if the operation is incomplete yet. Also sets eof if the end of the stream is reached
+        size_t get_result(DWORD miliseconds = 0);
+
+        // Returns true if the operation has reached end of stream. Only effective after the future has been awaited and get_result has been called
+        constexpr bool is_eof() const noexcept { return eof; }
+
+        // TODO: More API
+    };
+
+    // Same as read_into, but returns an event signaling the completion of the operation
+    [[nodiscard]] Future read_async(std::span<unsigned char> data, Sync doneEvent = Sync::create_event());
 
     // Same as write_from, but returns an event signaling the completion of the operation
-    Sync write_async(std::span<const unsigned char> data, DWORD *written = nullptr);
+    [[nodiscard]] Future write_async(std::span<const unsigned char> data, Sync doneEvent = Sync::create_event());
 };
 
 }  // namespace abel
