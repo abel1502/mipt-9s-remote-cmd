@@ -82,12 +82,14 @@
     <ClCompile Include="Pipe.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="RemoteCMD.cpp" />
+    <ClCompile Include="Sync.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Handle.hpp" />
     <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
+    <ClInclude Include="Sync.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
