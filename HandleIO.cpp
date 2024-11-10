@@ -38,4 +38,19 @@ void HandleIO::write_from(std::span<const unsigned char> data) {
     assert(written == data.size());
 }
 
+std::vector<unsigned char> HandleIO::read(size_t size, bool exact) {
+    std::vector<unsigned char> data(size);
+    if (exact) {
+        read_full_into(data);
+    } else {
+        size_t read = read_into(data);
+        data.resize(read);
+    }
+    return data;
+}
+
+void HandleIO::cancel_async() {
+    CancelIo(source);
+}
+
 }  // namespace abel
