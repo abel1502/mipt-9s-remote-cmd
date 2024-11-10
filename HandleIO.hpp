@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Handle.hpp"
+#include "Sync.hpp"
 
 namespace abel {
 
@@ -41,8 +42,16 @@ public:
 
     // Cancels all pending async operations on this handle
     void cancel_async();
-};
 
-class
+    // TODO: OVERLAPPED must be preserved for the duration of the asynchronous operation, gotta return it alongside the event
+    // TODO: Also gotta use GetOverlappedResult to extract the read/written count and the status.
+    // TODO: Gotta mark the return nodiscard
+
+    // Same as read_into, but returns an event signaling the completion of the operation. If read is not null, returns the number of bytes read
+    Sync read_async(std::span<unsigned char> data, DWORD *read = nullptr);
+
+    // Same as write_from, but returns an event signaling the completion of the operation
+    Sync write_async(std::span<const unsigned char> data, DWORD *written = nullptr);
+};
 
 }  // namespace abel

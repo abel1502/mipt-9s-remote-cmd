@@ -53,4 +53,36 @@ void HandleIO::cancel_async() {
     CancelIo(source);
 }
 
+Sync HandleIO::read_async(std::span<unsigned char> data, DWORD *read) {
+    Sync done = Sync::create_event(true);  // TODO: Maybe different parameters?
+
+    OVERLAPPED ovl{.hEvent = done.raw()};
+    bool success = ReadFile(
+        source,
+        data.data(),
+        data.size(),
+        read,
+        &ovl
+    );
+    // TODO: Check success and GetLastError for IO pending
+
+    return done;
+}
+
+Sync HandleIO::write_async(std::span<const unsigned char> data, DWORD *written) {
+    Sync done = Sync::create_event(true);  // TODO: Maybe different parameters?
+
+    OVERLAPPED ovl{.hEvent = done.raw()};
+    bool success = WriteFile(
+        source,
+        data.data(),
+        data.size(),
+        written,
+        &ovl
+    );
+    // TODO: Check success and GetLastError for IO pending
+
+    return done;
+}
+
 }  // namespace abel

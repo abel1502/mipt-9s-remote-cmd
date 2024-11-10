@@ -9,11 +9,12 @@
 #include <cstdint>
 #include <optional>
 
-#include "HandleStream.hpp"
 #include "Owning.hpp"
 
 
 namespace abel {
+
+class HandleIO;
 
 class Handle {
 protected:
@@ -47,42 +48,28 @@ public:
         }
     }
 
-    constexpr const Handle &validate() const &{
-        return const_cast<Handle &>(*this).validate();
-    }
-
-    constexpr Handle &validate() &{
-        if (value == NULL || value == INVALID_HANDLE_VALUE) {
+    template <typename Self>
+    constexpr Self &&validate(this Self &&self) {
+        if (self.value == NULL || self.value == INVALID_HANDLE_VALUE) {
             throw std::runtime_error("Handle is invalid");
         }
-        return *this;
-    }
-
-    constexpr Handle &&validate() &&{
-        return std::move(static_cast<Handle &>(*this).validate());
+        return std::forward<Self>(self);
     }
 
     constexpr HANDLE raw() const noexcept {
         return value;
     }
 
-    constexpr const HANDLE *raw_ptr() const noexcept {
-        return &value;
-    }
-
-    constexpr HANDLE *raw_ptr() noexcept {
-        return &value;
+    template <typename Self>
+    constexpr decltype(auto) raw_ptr(this Self &&self) noexcept {
+        return &self.value;
     }
 
     Handle clone() const;
 
-    HandleIO io() const {
-        return HandleIO(value);
-    }
+    HandleIO io() const;
 
-    Owning<HandleIO, Handle> owning_io() {
-        return Owning<HandleIO, Handle>(io(), std::move(*this));
-    }
+    Owning<HandleIO, Handle> owning_io(this Handle self);
 };
 
 }  // namespace abel

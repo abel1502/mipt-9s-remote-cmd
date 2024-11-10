@@ -1,4 +1,5 @@
 #include "Handle.hpp"
+#include "HandleIO.hpp"
 
 namespace abel {
 
@@ -20,6 +21,14 @@ Handle Handle::clone() const {
     }
 
     return result;
+}
+
+HandleIO Handle::io() const {
+    return HandleIO{value};
+}
+
+Owning<HandleIO, Handle> Handle::owning_io(this Handle self) {
+    return Owning<HandleIO, Handle>(self.io(), std::move(self));
 }
 
 //std::vector<std::uint8_t> Handle::read(size_t size, bool exact) const {

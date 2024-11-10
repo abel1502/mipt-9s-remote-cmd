@@ -1,8 +1,10 @@
 #include <cstdio>
 
 #include "Handle.hpp"
+#include "HandleIO.hpp"
 #include "Process.hpp"
 #include "Pipe.hpp"
+#include "Sync.hpp"
 
 int main(int argc, const char **argv) {
     using namespace abel;
@@ -24,13 +26,11 @@ int main(int argc, const char **argv) {
 
     WaitForSingleObject(process.process.raw(), INFINITE);
 
-    auto result = pipe.read.read(1024, false);
+    auto result = pipe.read.io().read(1024, false);
 
     printf("<data>\n%s\n</data>\n", std::string(result.begin(), result.end()).c_str());
 
     printf("Done\n");
-
-
 
     return 0;
 }

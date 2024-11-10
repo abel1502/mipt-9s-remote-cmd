@@ -7,13 +7,11 @@
 namespace abel {
 
 // A common class for various synchronization objects (events, mutexes, semaphores, ...)
-class Sync {
+class Sync : public Handle {
 protected:
-    Sync() {}
+    constexpr Sync(HANDLE handle) : Handle(handle) {}
 
 public:
-    Handle handle{};
-
     constexpr Sync(Sync &&other) noexcept = default;
     constexpr Sync &operator=(Sync &&other) noexcept = default;
 
@@ -21,6 +19,12 @@ public:
 
     // TODO: CRITICAL_SECTION appears to be a lighter-weight single-process alternative
     static Sync create_mutex(bool initialOwner = false, bool inheritHandle = false);
+
+    // Blocks until the handle is signaled
+    void wait() const;
+
+    // Returns true if the wait succeeded, false on timeout
+    bool wait_timeout(DWORD miliseconds) const;
 
 };
 
