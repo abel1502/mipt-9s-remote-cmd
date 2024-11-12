@@ -52,7 +52,7 @@ public:
         std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
         bool eof = false;
 
-        inline Future(HANDLE source, Sync done) :
+        Future(HANDLE source, Sync done) :
             source{source},
             done{std::move(done)} {
 

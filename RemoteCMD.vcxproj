@@ -76,6 +76,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ArgParse.cpp" />
     <ClCompile Include="Handle.cpp" />
     <ClCompile Include="HandleIO.cpp" />
     <ClCompile Include="Owning.hpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="Sync.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArgParse.hpp" />
     <ClInclude Include="Handle.hpp" />
     <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />

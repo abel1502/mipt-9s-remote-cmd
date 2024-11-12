@@ -25,6 +25,10 @@ Sync Sync::create_mutex(bool initialOwner, bool inheritHandle) {
     return Sync(CreateMutex(&sa, initialOwner, nullptr)).validate();
 }
 
+bool Sync::is_set() const {
+    return wait_timeout(0);
+}
+
 void Sync::wait() const {
     wait_timeout(INFINITE);
 }

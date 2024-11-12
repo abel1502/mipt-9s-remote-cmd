@@ -16,6 +16,8 @@ namespace abel {
 
 class HandleIO;
 
+class Sync;
+
 class Handle {
 protected:
     HANDLE value;
@@ -41,7 +43,7 @@ public:
         return std::move(*this);
     }
 
-    inline ~Handle() noexcept {
+    ~Handle() noexcept {
         if (value) {
             CloseHandle(value);
             value = NULL;
@@ -74,6 +76,14 @@ public:
     HandleIO io() const;
 
     Owning<HandleIO, Handle> owning_io(this Handle self);
+
+    Sync sync(this Handle self);
+
+    // Strips the extra information from a handle, turning it back into a baseline one
+    template <typename Self>
+    constexpr Handle downgrade(this Self self) noexcept {
+        return (Handle)std::move(self);
+    }
 };
 
 }  // namespace abel
