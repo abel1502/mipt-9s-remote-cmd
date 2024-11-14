@@ -15,7 +15,6 @@ protected:
     Process() {}
 
 public:
-    // TODO: Make fields protected?
     Handle process{};
     DWORD pid{};
     Handle thread{};

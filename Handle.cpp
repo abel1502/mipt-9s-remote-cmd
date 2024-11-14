@@ -55,7 +55,7 @@ Handle Handle::create_mutex(bool initialOwner, bool inheritHandle) {
     return Handle(CreateMutex(&sa, initialOwner, nullptr)).validate();
 }
 
-bool Handle::is_set() const {
+bool Handle::is_signaled() const {
     return wait_timeout(0);
 }
 
@@ -107,5 +107,23 @@ size_t Handle::wait_multiple(std::span<const Handle *> handles, bool all, DWORD 
     }
 }
 #pragma endregion Sync
+
+#pragma region Thread
+void Handle::suspend_thread() const {
+    DWORD result = SuspendThread(raw());
+
+    if (result == -1) {
+        fail("Failed to suspend thread");
+    }
+}
+
+void Handle::resume_thread() const {
+    DWORD result = ResumeThread(raw());
+
+    if (result == -1) {
+        fail("Failed to resume thread");
+    }
+}
+#pragma endregion Thread
 
 }  // namespace abel

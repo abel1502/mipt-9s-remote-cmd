@@ -83,6 +83,7 @@
     <ClCompile Include="Pipe.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="RemoteCMD.cpp" />
+    <ClCompile Include="Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArgParse.hpp" />
@@ -91,6 +92,7 @@
     <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
+    <ClInclude Include="Thread.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

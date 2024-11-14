@@ -83,8 +83,10 @@ public:
     // TODO: CRITICAL_SECTION appears to be a lighter-weight single-process alternative
     static Handle create_mutex(bool initialOwner = false, bool inheritHandle = false);
 
+    // TODO: signal()
+
     // Tells if the handle is signaled without waiting
-    bool is_set() const;
+    bool is_signaled() const;
 
     // Blocks until the handle is signaled
     void wait() const;
@@ -101,7 +103,13 @@ public:
 
     // Same as the template version, but takes a span instead. Has to take pointers instead of references
     static size_t wait_multiple(std::span<const Handle *> handles, bool all = false, DWORD miliseconds = INFINITE);
-#pragma region Sync
+#pragma endregion Sync
+
+#pragma region Thread
+    void suspend_thread() const;
+
+    void resume_thread() const;
+#pragma endregion Thread
 };
 
 }  // namespace abel
