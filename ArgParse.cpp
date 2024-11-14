@@ -1,7 +1,5 @@
 #include "ArgParse.hpp"
 
-#include <stdexcept>
-
 namespace abel {
 
 void ArgParser::parse(int argc, const char **argv) {
@@ -18,15 +16,15 @@ void ArgParser::parse(int argc, const char **argv) {
 
 const ArgParser::arg &ArgParser::lookup_known_arg(std::string_view token) const {
     if (token.size() < 0) {
-        throw std::runtime_error("Empty argument");
+        fail("Empty argument");
     }
     if (!token.starts_with("-")) {
-        throw std::runtime_error("Positional arguments not supported");
+        fail("Positional arguments not supported");
     }
 
     if (!token.starts_with("--")) {
         if (token.size() != 2) {
-            throw std::runtime_error("Invalid shorthand argument");
+            fail("Invalid shorthand argument");
         }
 
         for (const auto &arg : known_args) {
@@ -35,7 +33,7 @@ const ArgParser::arg &ArgParser::lookup_known_arg(std::string_view token) const 
             }
         }
 
-        throw std::runtime_error("Unknown argument");
+        fail("Unknown argument");
     }
 
     token.remove_prefix(2);
@@ -46,7 +44,7 @@ const ArgParser::arg &ArgParser::lookup_known_arg(std::string_view token) const 
         }
     }
 
-    throw std::runtime_error("Unknown argument");
+    fail("Unknown argument");
 }
 
 }  // namespace abel

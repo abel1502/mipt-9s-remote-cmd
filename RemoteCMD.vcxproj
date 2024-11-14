@@ -86,6 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArgParse.hpp" />
+    <ClInclude Include="Error.hpp" />
     <ClInclude Include="Handle.hpp" />
     <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />

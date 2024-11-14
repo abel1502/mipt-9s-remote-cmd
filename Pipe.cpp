@@ -1,6 +1,6 @@
 #include "Pipe.hpp"
 
-#include <stdexcept>
+#include "Error.hpp"
 
 namespace abel {
 
@@ -21,7 +21,7 @@ Pipe Pipe::create(bool inheritHandles, DWORD bufSize) {
     );
 
     if (!success) {
-        throw std::runtime_error("Failed to create pipe");
+        fail("Failed to create pipe");
     }
 
     result.read.validate();

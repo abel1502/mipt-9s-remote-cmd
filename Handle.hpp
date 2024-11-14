@@ -1,8 +1,6 @@
 #pragma once
 
 #include <Windows.h>
-#include <exception>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 #include <span>
@@ -10,6 +8,7 @@
 #include <optional>
 #include <concepts>
 
+#include "Error.hpp"
 #include "Owning.hpp"
 
 
@@ -56,7 +55,7 @@ public:
     template <typename Self>
     constexpr Self &&validate(this Self &&self) {
         if (self.value == NULL || self.value == INVALID_HANDLE_VALUE) {
-            throw std::runtime_error("Handle is invalid");
+            fail("Handle is invalid");
         }
         return std::forward<Self>(self);
     }

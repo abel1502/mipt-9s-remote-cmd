@@ -1,7 +1,8 @@
 #include "Process.hpp"
 
-#include <stdexcept>
 #include <utility>
+
+#include "Error.hpp"
 
 namespace abel {
 
@@ -55,7 +56,7 @@ Process Process::create(
     );
 
     if (!success) {
-        throw std::runtime_error("Failed to create process");
+        fail("Failed to create process");
     }
 
     Handle process{processInfo.hProcess};

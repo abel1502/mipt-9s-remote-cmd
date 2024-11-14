@@ -1,7 +1,8 @@
 #include "HandleIO.hpp"
 
-#include <stdexcept>
 #include <cassert>
+
+#include "Error.hpp"
 
 namespace abel {
 
@@ -9,7 +10,7 @@ size_t HandleIO::read_into(std::span<unsigned char> data) {
     DWORD read = 0;
     bool success = ReadFile(source, data.data(), data.size(), &read, nullptr);
     if (!success) {
-        throw std::runtime_error("Failed to read from handle");
+        fail("Failed to read from handle");
     }
 
     eof = read == 0;
@@ -24,7 +25,7 @@ void HandleIO::read_full_into(std::span<unsigned char> data) {
     }
 
     if (eof) {
-        throw std::runtime_error("End of stream reached prematurely");
+        fail("End of stream reached prematurely");
     }
 }
 
@@ -32,7 +33,7 @@ void HandleIO::write_from(std::span<const unsigned char> data) {
     DWORD written = 0;
     bool success = WriteFile(source, data.data(), data.size(), &written, nullptr);
     if (!success) {
-        throw std::runtime_error("Failed to write to handle");
+        fail("Failed to write to handle");
     }
     // MSDN seems to imply a successful WriteFile call always writes the entire buffer
     assert(written == data.size());
@@ -64,7 +65,7 @@ size_t HandleIO::Future::get_result(DWORD miliseconds) {
     );
 
     if (!success) {
-        throw std::runtime_error("Failed to get overlapped operation result");
+        fail("Failed to get overlapped operation result");
     }
 
     // TODO: Perhaps a GetLastError check is necessary instead?
@@ -85,7 +86,7 @@ HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Handle done
     );
 
     if (!success && GetLastError() != ERROR_IO_PENDING) {
-        throw std::runtime_error("Failed to initiate asynchronous read from handle");
+        fail("Failed to initiate asynchronous read from handle");
     }
 
     return result;
@@ -103,7 +104,7 @@ HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, Hand
     );
 
     if (!success && GetLastError() != ERROR_IO_PENDING) {
-        throw std::runtime_error("Failed to initiate asynchronous write to handle");
+        fail("Failed to initiate asynchronous write to handle");
     }
 
     return result;

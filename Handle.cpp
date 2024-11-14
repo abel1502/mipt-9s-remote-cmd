@@ -17,7 +17,7 @@ Handle Handle::clone() const {
     );
 
     if (!success) {
-        throw std::runtime_error("Failed to duplicate handle");
+        fail("Failed to duplicate handle");
     }
 
     return result;
@@ -71,11 +71,11 @@ bool Handle::wait_timeout(DWORD miliseconds) const {
     case WAIT_TIMEOUT:
         return false;
     case WAIT_FAILED:
-        throw std::runtime_error("Failed to wait on handle");
+        fail("Failed to wait on handle");
     case WAIT_ABANDONED:
-        throw std::runtime_error("Wait abandoned");
+        fail("Wait abandoned");
     default:
-        throw std::runtime_error("Unknown wait result");
+        fail("Unknown wait result");
     }
 }
 
@@ -92,18 +92,18 @@ size_t Handle::wait_multiple(std::span<const Handle *> handles, bool all, DWORD 
     }
 
     if (WAIT_ABANDONED_0 <= result && result < WAIT_ABANDONED_0 + handles.size()) {
-        throw std::runtime_error("Wait abandoned");
+        fail("Wait abandoned");
     }
 
     switch (result) {
     case WAIT_TIMEOUT:
         return -1U;
     case WAIT_FAILED:
-        throw std::runtime_error("Failed to wait on handles");
+        fail("Failed to wait on handles");
     case WAIT_ABANDONED:
-        throw std::runtime_error("Wait abandoned");
+        fail("Wait abandoned");
     default:
-        throw std::runtime_error("Unknown wait result");
+        fail("Unknown wait result");
     }
 }
 #pragma endregion Sync

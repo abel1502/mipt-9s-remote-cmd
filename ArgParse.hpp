@@ -6,8 +6,9 @@
 #include <utility>
 #include <functional>
 #include <cstdint>
-#include <stdexcept>
 #include <charconv>
+
+#include "Error.hpp"
 
 namespace abel {
 
@@ -63,7 +64,7 @@ public:
 
     void check_arg(int delta = 0) const {
         if (cur_pos < -delta || cur_pos + delta > args.size()) {
-            throw std::runtime_error("Missing arguments");
+            fail("Missing arguments");
         }
     }
 
@@ -88,7 +89,7 @@ public:
             std::string_view arg = parser.next_arg();
             auto status = std::from_chars(arg.data(), arg.data() + arg.size(), destination);
             if (status.ec != std::errc{} || status.ptr != arg.data() + arg.size()) {
-                throw std::runtime_error("Invalid argument");
+                fail("Invalid argument");
             }
         };
     }
