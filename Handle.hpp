@@ -8,6 +8,7 @@
 #include <span>
 #include <cstdint>
 #include <optional>
+#include <concepts>
 
 #include "Owning.hpp"
 
@@ -91,6 +92,16 @@ public:
 
     // Returns true if the wait succeeded, false on timeout
     bool wait_timeout(DWORD miliseconds) const;
+
+    // Combines the functionality of wait_timeout, wait (timeout=INFINITE) and is_set (timeout=0)
+    // for several handles at once. Returns -1U on timeout.
+    template <std::same_as<Handle> ...T>
+    static size_t wait_multiple(const T &...handles, bool all = false, DWORD miliseconds = INFINITE) {
+        return wait_multiple({&handles...}, all, miliseconds);
+    }
+
+    // Same as the template version, but takes a span instead. Has to take pointers instead of references
+    static size_t wait_multiple(std::span<const Handle *> handles, bool all = false, DWORD miliseconds = INFINITE);
 #pragma region Sync
 };
 

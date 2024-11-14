@@ -78,6 +78,34 @@ bool Handle::wait_timeout(DWORD miliseconds) const {
         throw std::runtime_error("Unknown wait result");
     }
 }
+
+size_t Handle::wait_multiple(std::span<const Handle *> handles, bool all, DWORD miliseconds) {
+    std::unique_ptr<HANDLE[]> handlesArr = std::make_unique<HANDLE[]>(handles.size());
+    for (size_t i = 0; i < handles.size(); ++i) {
+        handlesArr[i] = handles[i]->raw();
+    }
+
+    DWORD result = WaitForMultipleObjects(handles.size(), handlesArr.get(), all, miliseconds);
+
+    if (WAIT_OBJECT_0 <= result && result < WAIT_OBJECT_0 + handles.size()) {
+        return result - WAIT_OBJECT_0;
+    }
+
+    if (WAIT_ABANDONED_0 <= result && result < WAIT_ABANDONED_0 + handles.size()) {
+        throw std::runtime_error("Wait abandoned");
+    }
+
+    switch (result) {
+    case WAIT_TIMEOUT:
+        return -1U;
+    case WAIT_FAILED:
+        throw std::runtime_error("Failed to wait on handles");
+    case WAIT_ABANDONED:
+        throw std::runtime_error("Wait abandoned");
+    default:
+        throw std::runtime_error("Unknown wait result");
+    }
+}
 #pragma endregion Sync
 
 }  // namespace abel
