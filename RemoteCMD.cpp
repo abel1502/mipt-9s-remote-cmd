@@ -6,7 +6,6 @@
 #include "HandleIO.hpp"
 #include "Process.hpp"
 #include "Pipe.hpp"
-#include "Sync.hpp"
 #include "ArgParse.hpp"
 
 int main(int argc, const char **argv) {

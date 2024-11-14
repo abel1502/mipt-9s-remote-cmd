@@ -73,7 +73,7 @@ size_t HandleIO::Future::get_result(DWORD miliseconds) {
     return transmitted;
 }
 
-HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Sync doneEvent) {
+HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Handle doneEvent) {
     Future result{source, std::move(doneEvent)};
 
     bool success = ReadFile(
@@ -91,7 +91,7 @@ HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Sync doneEv
     return result;
 }
 
-HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, Sync doneEvent) {
+HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, Handle doneEvent) {
     Future result{source, std::move(doneEvent)};
 
     bool success = WriteFile(

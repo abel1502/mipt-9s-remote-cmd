@@ -16,8 +16,6 @@ namespace abel {
 
 class HandleIO;
 
-class Sync;
-
 class Handle {
 protected:
     HANDLE value;
@@ -73,17 +71,27 @@ public:
 
     Handle clone() const;
 
+#pragma region IO
     HandleIO io() const;
 
     Owning<HandleIO, Handle> owning_io(this Handle self);
+#pragma endregion IO
 
-    Sync sync(this Handle self);
+#pragma region Sync
+    static Handle create_event(bool manualReset = false, bool initialState = false, bool inheritHandle = false);
 
-    // Strips the extra information from a handle, turning it back into a baseline one
-    template <typename Self>
-    constexpr Handle downgrade(this Self self) noexcept {
-        return (Handle)std::move(self);
-    }
+    // TODO: CRITICAL_SECTION appears to be a lighter-weight single-process alternative
+    static Handle create_mutex(bool initialOwner = false, bool inheritHandle = false);
+
+    // Tells if the handle is signaled without waiting
+    bool is_set() const;
+
+    // Blocks until the handle is signaled
+    void wait() const;
+
+    // Returns true if the wait succeeded, false on timeout
+    bool wait_timeout(DWORD miliseconds) const;
+#pragma region Sync
 };
 
 }  // namespace abel

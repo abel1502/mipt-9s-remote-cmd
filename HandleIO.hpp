@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "Handle.hpp"
-#include "Sync.hpp"
 
 namespace abel {
 
@@ -52,7 +51,7 @@ public:
         std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
         bool eof = false;
 
-        Future(HANDLE source, Sync done) :
+        Future(HANDLE source, Handle done) :
             source{source},
             done{std::move(done)} {
 
@@ -63,7 +62,7 @@ public:
 
     public:
         // The event signaling the completion of the operation.
-        Sync done;
+        Handle done;
 
         // Returns the number of bytes read/written. If a timeout is provided (supports INFINITE), blocks until the operation completes
         // Without a timeout, fails if the operation is incomplete yet. Also sets eof if the end of the stream is reached
@@ -76,10 +75,10 @@ public:
     };
 
     // Same as read_into, but returns an event signaling the completion of the operation
-    [[nodiscard]] Future read_async(std::span<unsigned char> data, Sync doneEvent = Sync::create_event());
+    [[nodiscard]] Future read_async(std::span<unsigned char> data, Handle doneEvent = Handle::create_event());
 
     // Same as write_from, but returns an event signaling the completion of the operation
-    [[nodiscard]] Future write_async(std::span<const unsigned char> data, Sync doneEvent = Sync::create_event());
+    [[nodiscard]] Future write_async(std::span<const unsigned char> data, Handle doneEvent = Handle::create_event());
 };
 
 }  // namespace abel
