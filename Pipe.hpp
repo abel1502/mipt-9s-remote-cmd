@@ -12,7 +12,8 @@ public:
     Handle read{};
     Handle write{};
 
-    constexpr Pipe() {}
+    constexpr Pipe() {
+    }
 
     constexpr Pipe(Pipe &&other) noexcept = default;
     constexpr Pipe &operator=(Pipe &&other) noexcept = default;

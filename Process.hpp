@@ -12,7 +12,8 @@ namespace abel {
 
 class Process {
 protected:
-    Process() {}
+    Process() {
+    }
 
 public:
     Handle process{};

@@ -5,7 +5,7 @@
 
 namespace abel {
 
-template <typename T, typename ... Us>
+template <typename T, typename... Us>
 class Owning : public T {
 private:
     std::tuple<Us...> owned;
@@ -13,7 +13,8 @@ private:
 public:
     Owning(T object, Us... owned) :
         T(std::move(object)),
-        owned{std::make_tuple(std::move(owned)...)} {}
+        owned{std::make_tuple(std::move(owned)...)} {
+    }
 };
 
 }  // namespace abel

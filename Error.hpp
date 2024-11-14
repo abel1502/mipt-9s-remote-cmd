@@ -13,4 +13,4 @@ namespace abel {
     throw std::runtime_error(message);
 }
 
-}
+}  // namespace abel

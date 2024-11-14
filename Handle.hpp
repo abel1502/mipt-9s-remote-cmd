@@ -21,17 +21,24 @@ protected:
     HANDLE value;
 
 public:
-    constexpr Handle() noexcept : value(NULL) {}
+    constexpr Handle() noexcept :
+        value(NULL) {
+    }
 
-    constexpr Handle(nullptr_t) noexcept : Handle() {}
+    constexpr Handle(nullptr_t) noexcept :
+        Handle() {
+    }
 
-    constexpr Handle(HANDLE value) noexcept : value(value) {}
+    constexpr Handle(HANDLE value) noexcept :
+        value(value) {
+    }
 
     Handle(const Handle &other) = delete;
 
     Handle &operator=(const Handle &other) = delete;
 
-    constexpr Handle(Handle &&other) noexcept : value(other.value) {
+    constexpr Handle(Handle &&other) noexcept :
+        value(other.value) {
         other.value = NULL;
     }
 
@@ -96,7 +103,7 @@ public:
 
     // Combines the functionality of wait_timeout, wait (timeout=INFINITE) and is_set (timeout=0)
     // for several handles at once. Returns -1U on timeout.
-    template <std::same_as<Handle> ...T>
+    template <std::same_as<Handle>... T>
     static size_t wait_multiple(const T &...handles, bool all = false, DWORD miliseconds = INFINITE) {
         return wait_multiple({&handles...}, all, miliseconds);
     }

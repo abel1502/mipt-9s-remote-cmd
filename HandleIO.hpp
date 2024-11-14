@@ -14,7 +14,9 @@ protected:
     bool eof = false;
 
 public:
-    HandleIO(HANDLE source) : source(source) {}
+    HandleIO(HANDLE source) :
+        source(source) {
+    }
 
     constexpr HandleIO(const HandleIO &other) noexcept = default;
     constexpr HandleIO &operator=(const HandleIO &other) noexcept = default;
@@ -24,7 +26,9 @@ public:
     // Synchronous API
 
     // Returns true if the last read operation has reached end of stream
-    constexpr bool is_eof() const noexcept { return eof; }
+    constexpr bool is_eof() const noexcept {
+        return eof;
+    }
 
     // Reads some data into the buffer. Returns the number of bytes read. Sets eof if the end of the stream is reached.
     size_t read_into(std::span<unsigned char> data);
@@ -69,7 +73,9 @@ public:
         size_t get_result(DWORD miliseconds = 0);
 
         // Returns true if the operation has reached end of stream. Only effective after the future has been awaited and get_result has been called
-        constexpr bool is_eof() const noexcept { return eof; }
+        constexpr bool is_eof() const noexcept {
+            return eof;
+        }
 
         // TODO: More API
     };

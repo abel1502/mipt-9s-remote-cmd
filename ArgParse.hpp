@@ -14,7 +14,7 @@ namespace abel {
 
 class ArgParser {
 public:
-    using handler_func_t = void (ArgParser &parser);
+    using handler_func_t = void(ArgParser &parser);
 
     using handler_t = std::function<handler_func_t>;
 
@@ -34,7 +34,8 @@ protected:
     size_t cur_pos = 0;
 
 public:
-    ArgParser() {}
+    ArgParser() {
+    }
 
     void parse(int argc, const char **argv);
 
