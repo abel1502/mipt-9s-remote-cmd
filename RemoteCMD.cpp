@@ -8,6 +8,7 @@
 #include "Thread.hpp"
 #include "Pipe.hpp"
 #include "ArgParse.hpp"
+#include "Socket.hpp"
 
 int main(int argc, const char **argv) {
     using namespace abel;
@@ -34,6 +35,8 @@ int main(int argc, const char **argv) {
     parser.add_arg("port", ArgParser::handler_store_int(port));
 
     parser.parse(argc, argv);
+
+    SocketLibGuard socket_lib_guard{};
 
     Thread::create([]() -> DWORD {
         printf("Thread test\n");

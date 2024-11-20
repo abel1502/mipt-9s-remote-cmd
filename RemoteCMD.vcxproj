@@ -94,6 +94,7 @@
     <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
+    <ClInclude Include="Socket.hpp" />
     <ClInclude Include="Thread.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
