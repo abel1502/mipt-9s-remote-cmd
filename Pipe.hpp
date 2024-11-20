@@ -9,8 +9,8 @@ namespace abel {
 
 class Pipe {
 public:
-    Handle read{};
-    Handle write{};
+    OwningHandle read{};
+    OwningHandle write{};
 
     constexpr Pipe() {
     }

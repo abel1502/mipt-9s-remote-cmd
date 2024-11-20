@@ -24,7 +24,7 @@ Thread Thread::create(
         flags |= CREATE_SUSPENDED;
     }
 
-    result.handle = Handle(CreateThread(&sa, 0, func, param, flags, &result.tid)).validate();
+    result.handle = OwningHandle(CreateThread(&sa, 0, func, param, flags, &result.tid)).validate();
 
     return result;
 }

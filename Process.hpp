@@ -16,9 +16,9 @@ protected:
     }
 
 public:
-    Handle process{};
+    OwningHandle process{};
     DWORD pid{};
-    Handle thread{};
+    OwningHandle thread{};
     DWORD tid{};
 
     constexpr Process(Process &&other) noexcept = default;

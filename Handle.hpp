@@ -16,6 +16,9 @@ namespace abel {
 
 class HandleIO;
 
+class OwningHandle;
+
+// Handle is a non-owning wrapper around a WinAPI HANDLE
 class Handle {
 protected:
     HANDLE value;
@@ -33,27 +36,10 @@ public:
         value(value) {
     }
 
-    Handle(const Handle &other) = delete;
-
-    Handle &operator=(const Handle &other) = delete;
-
-    constexpr Handle(Handle &&other) noexcept :
-        value(other.value) {
-        other.value = NULL;
-    }
-
-    constexpr Handle &&operator=(Handle &&other) noexcept {
-        value = other.value;
-        other.value = NULL;
-        return std::move(*this);
-    }
-
-    ~Handle() noexcept {
-        if (value) {
-            CloseHandle(value);
-            value = NULL;
-        }
-    }
+    constexpr Handle(const Handle &other) noexcept = default;
+    constexpr Handle &operator=(const Handle &other) noexcept = default;
+    constexpr Handle(Handle &&other) noexcept = default;
+    constexpr Handle &operator=(Handle &&other) noexcept = default;
 
     constexpr operator bool() const noexcept {
         return value != NULL;
@@ -76,19 +62,18 @@ public:
         return &self.value;
     }
 
-    Handle clone() const;
+    OwningHandle clone() const;
 
 #pragma region IO
+    // TODO: incorporate directly?
     HandleIO io() const;
-
-    Owning<HandleIO, Handle> owning_io(this Handle self);
 #pragma endregion IO
 
 #pragma region Sync
-    static Handle create_event(bool manualReset = false, bool initialState = false, bool inheritHandle = false);
+    static OwningHandle create_event(bool manualReset = false, bool initialState = false, bool inheritHandle = false);
 
     // TODO: CRITICAL_SECTION appears to be a lighter-weight single-process alternative
-    static Handle create_mutex(bool initialOwner = false, bool inheritHandle = false);
+    static OwningHandle create_mutex(bool initialOwner = false, bool inheritHandle = false);
 
     // TODO: signal()
 
@@ -102,14 +87,14 @@ public:
     bool wait_timeout(DWORD miliseconds) const;
 
     // Combines the functionality of wait_timeout, wait (timeout=INFINITE) and is_set (timeout=0)
-    // for several handles at once. Returns -1U on timeout.
+    // for several handles at once. Returns -1U on timeout
     template <std::same_as<Handle>... T>
-    static size_t wait_multiple(const T &...handles, bool all = false, DWORD miliseconds = INFINITE) {
-        return wait_multiple({&handles...}, all, miliseconds);
+    static size_t wait_multiple(T ...handles, bool all = false, DWORD miliseconds = INFINITE) {
+        return wait_multiple({handles...}, all, miliseconds);
     }
 
-    // Same as the template version, but takes a span instead. Has to take pointers instead of references
-    static size_t wait_multiple(std::span<const Handle *> handles, bool all = false, DWORD miliseconds = INFINITE);
+    // Same as the template version, but takes a span instead
+    static size_t wait_multiple(std::span<Handle> handles, bool all = false, DWORD miliseconds = INFINITE);
 #pragma endregion Sync
 
 #pragma region Thread
@@ -118,5 +103,44 @@ public:
     void resume_thread() const;
 #pragma endregion Thread
 };
+
+// A handle that closes itself on destruction
+class OwningHandle : public Handle {
+public:
+    constexpr OwningHandle() noexcept :
+        Handle() {
+    }
+
+    constexpr OwningHandle(nullptr_t) noexcept :
+        Handle(nullptr) {
+    }
+
+    constexpr OwningHandle(HANDLE value) noexcept :
+        Handle(value) {
+    }
+
+    OwningHandle(const OwningHandle &other) = delete;
+
+    OwningHandle &operator=(const OwningHandle &other) = delete;
+
+    constexpr OwningHandle(OwningHandle &&other) noexcept :
+        Handle(std::move(other)) {
+        other.value = NULL;
+    }
+
+    constexpr OwningHandle &operator=(OwningHandle &&other) noexcept {
+        value = other.value;
+        other.value = NULL;
+        return *this;
+    }
+
+    ~OwningHandle() noexcept {
+        if (value) {
+            CloseHandle(value);
+            value = NULL;
+        }
+    }
+};
+
 
 }  // namespace abel

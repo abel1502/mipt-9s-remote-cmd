@@ -59,8 +59,8 @@ Process Process::create(
         fail("Failed to create process");
     }
 
-    Handle process{processInfo.hProcess};
-    Handle thread{processInfo.hThread};
+    OwningHandle process{processInfo.hProcess};
+    OwningHandle thread{processInfo.hThread};
 
     process.validate();
     thread.validate();

@@ -17,7 +17,7 @@ protected:
     }
 
 public:
-    Handle handle{};
+    OwningHandle handle{};
     DWORD tid{};
 
     constexpr Thread(Thread &&other) noexcept = default;

@@ -13,4 +13,11 @@ namespace abel {
     throw std::runtime_error(message);
 }
 
+// This version of `fail()` accepts a Windows error code to report it alongside the message.
+[[noreturn]] inline void fail_ec(const char *message, DWORD error_code = GetLastError()) {
+    // TODO: actually use error_code
+    (void)error_code;
+    return fail(message);
+}
+
 }  // namespace abel

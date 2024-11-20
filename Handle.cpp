@@ -3,14 +3,14 @@
 
 namespace abel {
 
-Handle Handle::clone() const {
-    Handle result{};
+OwningHandle Handle::clone() const {
+    OwningHandle result{};
 
     bool success = DuplicateHandle(
         GetCurrentProcess(),
         value,
         GetCurrentProcess(),
-        &result.value,
+        result.raw_ptr(),
         0,
         false,
         DUPLICATE_SAME_ACCESS
@@ -27,32 +27,27 @@ Handle Handle::clone() const {
 HandleIO Handle::io() const {
     return HandleIO{value};
 }
-
-Owning<HandleIO, Handle> Handle::owning_io(this Handle self) {
-    HandleIO io = self.io();
-    return Owning<HandleIO, Handle>(std::move(io), std::move(self));
-}
 #pragma endregion IO
 
 #pragma region Sync
-Handle Handle::create_event(bool manualReset, bool initialState, bool inheritHandle) {
+OwningHandle Handle::create_event(bool manualReset, bool initialState, bool inheritHandle) {
     SECURITY_ATTRIBUTES sa{
         .nLength = sizeof(SECURITY_ATTRIBUTES),
         .lpSecurityDescriptor = nullptr,
         .bInheritHandle = inheritHandle,
     };
 
-    return Handle(CreateEvent(&sa, manualReset, initialState, nullptr)).validate();
+    return OwningHandle(CreateEvent(&sa, manualReset, initialState, nullptr)).validate();
 }
 
-Handle Handle::create_mutex(bool initialOwner, bool inheritHandle) {
+OwningHandle Handle::create_mutex(bool initialOwner, bool inheritHandle) {
     SECURITY_ATTRIBUTES sa{
         .nLength = sizeof(SECURITY_ATTRIBUTES),
         .lpSecurityDescriptor = nullptr,
         .bInheritHandle = inheritHandle,
     };
 
-    return Handle(CreateMutex(&sa, initialOwner, nullptr)).validate();
+    return OwningHandle(CreateMutex(&sa, initialOwner, nullptr)).validate();
 }
 
 bool Handle::is_signaled() const {
@@ -79,10 +74,10 @@ bool Handle::wait_timeout(DWORD miliseconds) const {
     }
 }
 
-size_t Handle::wait_multiple(std::span<const Handle *> handles, bool all, DWORD miliseconds) {
+size_t Handle::wait_multiple(std::span<Handle> handles, bool all, DWORD miliseconds) {
     std::unique_ptr<HANDLE[]> handlesArr = std::make_unique<HANDLE[]>(handles.size());
     for (size_t i = 0; i < handles.size(); ++i) {
-        handlesArr[i] = handles[i]->raw();
+        handlesArr[i] = handles[i].raw();
     }
 
     DWORD result = WaitForMultipleObjects(handles.size(), handlesArr.get(), all, miliseconds);

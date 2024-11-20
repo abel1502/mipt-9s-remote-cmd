@@ -8,7 +8,7 @@ namespace abel {
 
 size_t HandleIO::read_into(std::span<unsigned char> data) {
     DWORD read = 0;
-    bool success = ReadFile(source, data.data(), data.size(), &read, nullptr);
+    bool success = ReadFile(source.raw(), data.data(), data.size(), &read, nullptr);
     if (!success) {
         fail("Failed to read from handle");
     }
@@ -31,7 +31,7 @@ void HandleIO::read_full_into(std::span<unsigned char> data) {
 
 void HandleIO::write_from(std::span<const unsigned char> data) {
     DWORD written = 0;
-    bool success = WriteFile(source, data.data(), data.size(), &written, nullptr);
+    bool success = WriteFile(source.raw(), data.data(), data.size(), &written, nullptr);
     if (!success) {
         fail("Failed to write to handle");
     }
@@ -51,13 +51,13 @@ std::vector<unsigned char> HandleIO::read(size_t size, bool exact) {
 }
 
 void HandleIO::cancel_async() {
-    CancelIo(source);
+    CancelIo(source.raw());
 }
 
 size_t HandleIO::Future::get_result(DWORD miliseconds) {
     DWORD transmitted = 0;
     bool success = GetOverlappedResultEx(
-        source,
+        source.raw(),
         overlapped.get(),
         &transmitted,
         miliseconds,
@@ -74,11 +74,11 @@ size_t HandleIO::Future::get_result(DWORD miliseconds) {
     return transmitted;
 }
 
-HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Handle doneEvent) {
+HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, OwningHandle doneEvent) {
     Future result{source, std::move(doneEvent)};
 
     bool success = ReadFile(
-        source,
+        source.raw(),
         data.data(),
         data.size(),
         nullptr,
@@ -92,11 +92,11 @@ HandleIO::Future HandleIO::read_async(std::span<unsigned char> data, Handle done
     return result;
 }
 
-HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, Handle doneEvent) {
+HandleIO::Future HandleIO::write_async(std::span<const unsigned char> data, OwningHandle doneEvent) {
     Future result{source, std::move(doneEvent)};
 
     bool success = WriteFile(
-        source,
+        source.raw(),
         data.data(),
         data.size(),
         nullptr,

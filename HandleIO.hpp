@@ -10,11 +10,11 @@ namespace abel {
 
 class HandleIO {
 protected:
-    HANDLE source;
+    Handle source;
     bool eof = false;
 
 public:
-    HandleIO(HANDLE source) :
+    HandleIO(Handle source) :
         source(source) {
     }
 
@@ -48,14 +48,22 @@ public:
     void cancel_async();
 
     // TODO: Think really hard about the proper design for a winapi future
+    // TODO: C++20 coroutine-friendlyness:
+    //        - await_ready tests GetOverlappedResult (no waiting)
+    //        - await_suspend passes this (including the event handle) and the coroutine_handle to the executor (?)
+    //        - await_resume calls GetOverlappedResult (no waiting) again, and assumes the result is present
+    //        - the executor stores a vector of [type-erased awaitable (?) + coroutine_handle],
+    //          and a single step of the executor waits on all events and when one is signaled, removes it
+    //          from the list and resumes the associated coroutine. When it is suspended again, it is either
+    //          added with a new event, or ...?
     // Returned by async read-write APIs
     class Future {
     protected:
-        HANDLE source;
+        Handle source;
         std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
         bool eof = false;
 
-        Future(HANDLE source, Handle done) :
+        Future(Handle source, OwningHandle done) :
             source{source},
             done{std::move(done)} {
 
@@ -66,7 +74,7 @@ public:
 
     public:
         // The event signaling the completion of the operation.
-        Handle done;
+        OwningHandle done;
 
         // Returns the number of bytes read/written. If a timeout is provided (supports INFINITE), blocks until the operation completes
         // Without a timeout, fails if the operation is incomplete yet. Also sets eof if the end of the stream is reached
@@ -81,10 +89,10 @@ public:
     };
 
     // Same as read_into, but returns an event signaling the completion of the operation
-    [[nodiscard]] Future read_async(std::span<unsigned char> data, Handle doneEvent = Handle::create_event());
+    [[nodiscard]] Future read_async(std::span<unsigned char> data, OwningHandle doneEvent = Handle::create_event());
 
     // Same as write_from, but returns an event signaling the completion of the operation
-    [[nodiscard]] Future write_async(std::span<const unsigned char> data, Handle doneEvent = Handle::create_event());
+    [[nodiscard]] Future write_async(std::span<const unsigned char> data, OwningHandle doneEvent = Handle::create_event());
 };
 
 }  // namespace abel
