@@ -1,13 +1,13 @@
 #pragma once
 
-#include <Windows.h>
+#include "Error.hpp"
+
 #include <WinSock2.h>
+#include <Windows.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "Mswsock.lib")
 #pragma comment(lib, "AdvApi32.lib")
-
-#include "Error.hpp"
 
 namespace abel {
 

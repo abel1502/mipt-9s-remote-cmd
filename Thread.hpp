@@ -1,13 +1,13 @@
 #pragma once
 
+#include "Handle.hpp"
+#include "Owning.hpp"
+
 #include <Windows.h>
 #include <utility>
 #include <concepts>
 #include <functional>
 #include <memory>
-
-#include "Handle.hpp"
-#include "Owning.hpp"
 
 namespace abel {
 
@@ -43,7 +43,7 @@ public:
                 [](void *arg) -> DWORD { return std::invoke(*reinterpret_cast<F *>(arg)); },
                 funcPtr.get()
             ),
-            std::move(funcPtr),
+            std::move(funcPtr)
         );
     }
 };

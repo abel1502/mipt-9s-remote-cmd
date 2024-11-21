@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Error.hpp"
+
 #include <vector>
 #include <string>
 #include <string_view>
@@ -7,8 +9,6 @@
 #include <functional>
 #include <cstdint>
 #include <charconv>
-
-#include "Error.hpp"
 
 namespace abel {
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <WinSock2.h>  // Only for WSAGetLastError
+#include <WinSock2.h>
+#include <Windows.h>
 #include <stdexcept>
 
 namespace abel {
@@ -18,14 +19,14 @@ namespace abel {
 [[noreturn]] inline void fail_ec(const char *message, DWORD error_code = GetLastError()) {
     // TODO: actually use error_code
     (void)error_code;
-    return fail(message);
+    fail(message);
 }
 
 // This version of `fail()` accepts a WinSock2 error code to report it alongside the message.
 [[noreturn]] inline void fail_ws(const char *message, int error_code = WSAGetLastError()) {
     // TODO: actually use error_code
     (void)error_code;
-    return fail(message);
+    fail(message);
 }
 
 }  // namespace abel

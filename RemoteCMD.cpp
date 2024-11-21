@@ -1,14 +1,13 @@
-#include <cstdio>
-#include <cstdint>
-#include <string_view>
-
 #include "Handle.hpp"
-#include "HandleIO.hpp"
 #include "Process.hpp"
 #include "Thread.hpp"
 #include "Pipe.hpp"
 #include "ArgParse.hpp"
 #include "Socket.hpp"
+
+#include <cstdio>
+#include <cstdint>
+#include <string_view>
 
 int main(int argc, const char **argv) {
     using namespace abel;
@@ -38,10 +37,10 @@ int main(int argc, const char **argv) {
 
     SocketLibGuard socket_lib_guard{};
 
-    Thread::create([]() -> DWORD {
+    /*Thread::create([]() -> DWORD {
         printf("Thread test\n");
         return 0;
-    });
+    });*/
 
     printf("Starting\n");
 
@@ -58,9 +57,9 @@ int main(int argc, const char **argv) {
         pipe.write.raw()
     );
 
-    WaitForSingleObject(process.process.raw(), INFINITE);
+    process.process.wait();
 
-    auto result = pipe.read.io().read(1024, false);
+    auto result = pipe.read.read(1024, false);
 
     printf(
         "<data>\n%s\n</data>\n",

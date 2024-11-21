@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Error.hpp"
+
 #include <Windows.h>
 #include <utility>
 #include <vector>
@@ -7,16 +9,17 @@
 #include <cstdint>
 #include <optional>
 #include <concepts>
-
-#include "Error.hpp"
-#include "Owning.hpp"
+#include <memory>
 
 
 namespace abel {
 
-class HandleIO;
-
 class OwningHandle;
+
+class FutureIO;
+
+template <typename T>
+class AIO;
 
 // Handle is a non-owning wrapper around a WinAPI HANDLE
 class Handle {
@@ -64,18 +67,53 @@ public:
 
     OwningHandle clone() const;
 
+    void close();
+
 #pragma region IO
-    // TODO: incorporate directly?
-    HandleIO io() const;
+#pragma region Synchronous
+    // TODO: Return EOF too
+
+    // Reads some data into the buffer. Returns the number of bytes read. Sets eof if the end of the stream is reached.
+    size_t read_into(std::span<unsigned char> data);
+
+    // Reads data into the buffer until it is full. Throws and sets eof if end of stream is reached prematurely.
+    void read_full_into(std::span<unsigned char> data);
+
+    // Invokes either read_into or read_full_into and returns the result as a vector
+    std::vector<unsigned char> read(size_t size, bool exact = false);
+
+    // Writes the contents. Writes are always complete in a successful invocation.
+    void write_from(std::span<const unsigned char> data);
+#pragma endregion Synchronous
+
+#pragma region Asynchronous
+    // Note: requires the handle to have been opened with FILE_FLAG_OVERLAPPED
+
+    // TODO: Return EOF too
+
+    // Cancels all pending async operations on this handle
+    void cancel_async();
+
+    // Same as read_into, but returns an awaitable
+    [[nodiscard]] AIO<size_t> read_async(std::span<unsigned char> data);
+
+    // TODO: Maybe not void? IDK if it can fail
+    // Same as write_from, but returns an awaitable
+    [[nodiscard]] AIO<void> write_async(std::span<const unsigned char> data);
+#pragma endregion Asynchronous
 #pragma endregion IO
 
-#pragma region Sync
+#pragma region Synchronization
     static OwningHandle create_event(bool manualReset = false, bool initialState = false, bool inheritHandle = false);
 
     // TODO: CRITICAL_SECTION appears to be a lighter-weight single-process alternative
     static OwningHandle create_mutex(bool initialOwner = false, bool inheritHandle = false);
 
-    // TODO: signal()
+    // Sets an event
+    void signal();
+
+    // Resets an event
+    void reset();
 
     // Tells if the handle is signaled without waiting
     bool is_signaled() const;
@@ -95,7 +133,7 @@ public:
 
     // Same as the template version, but takes a span instead
     static size_t wait_multiple(std::span<Handle> handles, bool all = false, DWORD miliseconds = INFINITE);
-#pragma endregion Sync
+#pragma endregion Synchronization
 
 #pragma region Thread
     void suspend_thread() const;
@@ -103,6 +141,52 @@ public:
     void resume_thread() const;
 #pragma endregion Thread
 };
+
+#if 0
+// TODO: Think really hard about the proper design for a winapi future
+// TODO: C++20 coroutine-friendlyness?:
+//        - await_ready tests GetOverlappedResult (no waiting)
+//        - await_suspend passes this (including the event handle) and the coroutine_handle to the executor (?)
+//        - await_resume calls GetOverlappedResult (no waiting) again, and assumes the result is present
+//        - the executor stores a vector of [type-erased awaitable (?) + coroutine_handle],
+//          and a single step of the executor waits on all events and when one is signaled, removes it
+//          from the list and resumes the associated coroutine. When it is suspended again, it is either
+//          added with a new event, or ...?
+// Returned by async read-write APIs
+class FutureIO {
+protected:
+    Handle source;
+    Handle done;
+    std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
+    bool eof = false;
+
+    FutureIO(Handle source, Handle done) :
+        source{source},
+        done{done} {
+
+        overlapped->hEvent = done.raw();
+    }
+
+    friend Handle;
+
+public:
+    // The event signaling the completion of the operation.
+    Handle done() const noexcept {
+        return done;
+    }
+
+    // Returns the number of bytes read/written. If a timeout is provided (supports INFINITE), blocks until the operation completes
+    // Without a timeout, fails if the operation is incomplete yet. Also sets eof if the end of the stream is reached
+    size_t get_result(DWORD miliseconds = 0);
+
+    // Returns true if the operation has reached end of stream. Only effective after the future has been awaited and get_result has been called
+    constexpr bool is_eof() const noexcept {
+        return eof;
+    }
+
+    // TODO: More API
+};
+#endif
 
 // A handle that closes itself on destruction
 class OwningHandle : public Handle {
@@ -141,6 +225,5 @@ public:
         }
     }
 };
-
 
 }  // namespace abel

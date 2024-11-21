@@ -1,12 +1,12 @@
 #pragma once
 
+#include "Handle.hpp"
+
 #include <Windows.h>
 #include <utility>
 #include <string>
 #include <string_view>
 #include <functional>
-
-#include "Handle.hpp"
 
 namespace abel {
 

@@ -79,8 +79,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ArgParse.cpp" />
+    <ClCompile Include="Concurrency.cpp" />
     <ClCompile Include="Handle.cpp" />
-    <ClCompile Include="HandleIO.cpp" />
     <ClCompile Include="Owning.hpp" />
     <ClCompile Include="Pipe.cpp" />
     <ClCompile Include="Process.cpp" />
@@ -90,8 +90,8 @@
   <ItemGroup>
     <ClInclude Include="ArgParse.hpp" />
     <ClInclude Include="Error.hpp" />
+    <ClInclude Include="Concurrency.hpp" />
     <ClInclude Include="Handle.hpp" />
-    <ClInclude Include="HandleIO.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
     <ClInclude Include="Socket.hpp" />

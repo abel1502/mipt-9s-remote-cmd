@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Handle.hpp"
+
 #include <Windows.h>
 #include <utility>
-
-#include "Handle.hpp"
 
 namespace abel {
 
