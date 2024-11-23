@@ -16,8 +16,6 @@ namespace abel {
 
 class OwningHandle;
 
-class FutureIO;
-
 template <typename T>
 class AIO;
 
@@ -95,11 +93,11 @@ public:
     void cancel_async();
 
     // Same as read_into, but returns an awaitable
-    [[nodiscard]] AIO<size_t> read_async(std::span<unsigned char> data);
+    AIO<size_t> read_async(std::span<unsigned char> data);
 
     // TODO: Maybe not void? IDK if it can fail
     // Same as write_from, but returns an awaitable
-    [[nodiscard]] AIO<void> write_async(std::span<const unsigned char> data);
+    AIO<void> write_async(std::span<const unsigned char> data);
 #pragma endregion Asynchronous
 #pragma endregion IO
 
@@ -141,52 +139,6 @@ public:
     void resume_thread() const;
 #pragma endregion Thread
 };
-
-#if 0
-// TODO: Think really hard about the proper design for a winapi future
-// TODO: C++20 coroutine-friendlyness?:
-//        - await_ready tests GetOverlappedResult (no waiting)
-//        - await_suspend passes this (including the event handle) and the coroutine_handle to the executor (?)
-//        - await_resume calls GetOverlappedResult (no waiting) again, and assumes the result is present
-//        - the executor stores a vector of [type-erased awaitable (?) + coroutine_handle],
-//          and a single step of the executor waits on all events and when one is signaled, removes it
-//          from the list and resumes the associated coroutine. When it is suspended again, it is either
-//          added with a new event, or ...?
-// Returned by async read-write APIs
-class FutureIO {
-protected:
-    Handle source;
-    Handle done;
-    std::unique_ptr<OVERLAPPED> overlapped = std::make_unique<OVERLAPPED>();
-    bool eof = false;
-
-    FutureIO(Handle source, Handle done) :
-        source{source},
-        done{done} {
-
-        overlapped->hEvent = done.raw();
-    }
-
-    friend Handle;
-
-public:
-    // The event signaling the completion of the operation.
-    Handle done() const noexcept {
-        return done;
-    }
-
-    // Returns the number of bytes read/written. If a timeout is provided (supports INFINITE), blocks until the operation completes
-    // Without a timeout, fails if the operation is incomplete yet. Also sets eof if the end of the stream is reached
-    size_t get_result(DWORD miliseconds = 0);
-
-    // Returns true if the operation has reached end of stream. Only effective after the future has been awaited and get_result has been called
-    constexpr bool is_eof() const noexcept {
-        return eof;
-    }
-
-    // TODO: More API
-};
-#endif
 
 // A handle that closes itself on destruction
 class OwningHandle : public Handle {

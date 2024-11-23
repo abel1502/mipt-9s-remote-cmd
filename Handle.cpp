@@ -93,7 +93,6 @@ void Handle::cancel_async() {
 
 AIO<size_t> Handle::read_async(std::span<unsigned char> data) {
     auto &env = *co_await current_env{};
-    Handle io_done = env.io_done();
     OVERLAPPED *overlapped = env.overlapped();
 
     bool success = ReadFile(
@@ -132,7 +131,6 @@ AIO<size_t> Handle::read_async(std::span<unsigned char> data) {
 
 AIO<void> Handle::write_async(std::span<const unsigned char> data) {
     auto &env = *co_await current_env{};
-    Handle io_done = env.io_done();
     OVERLAPPED *overlapped = env.overlapped();
 
     bool success = WriteFile(

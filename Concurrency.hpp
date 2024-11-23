@@ -65,7 +65,6 @@ struct current_env {
 struct io_done_signaled {
 };
 
-// TODO: Move to .cpp
 class AIOEnv {
 protected:
     OwningHandle io_done_ = Handle::create_event(true, false);  // TODO: Different flags?
@@ -98,26 +97,15 @@ public:
         return current_;
     }
 
-    void update_current(std::coroutine_handle<> prev, std::coroutine_handle<> coro) noexcept {
-        if (current_ != prev) {
-            fail("Nonlinear use of AIOEnv detected");
-        }
-        current_ = coro;
-    }
+    void update_current(std::coroutine_handle<> prev, std::coroutine_handle<> coro) noexcept;
 
-    void step() {
-        if (!current_.done() && io_done_.is_signaled()) {
-            current_.resume();
-        }
-    }
+    void step();
 };
-
-class AIOEnv;
 
 // AIO is a coroutine object for simple asynchronous IO on WinAPI handles.
 // It is also used as an awaitable for async IO primitives.
 template <typename T = void>
-class AIO {
+class [[nodiscard]] AIO {
 public:
     struct promise_type : public _impl_promise_return<T> {
         AIOEnv *env;
@@ -224,16 +212,28 @@ protected:
     friend AIOEnv;
 
 public:
-    AIO(coroutine_ptr coro) :
+    explicit AIO(coroutine_ptr coro) :
         coro{coro} {
     }
 
-    AIO(const AIO &other) = default;
-    AIO &operator=(const AIO &other) = default;
-    AIO(AIO &&other) = default;
-    AIO &operator=(AIO &&other) = default;
+    AIO(const AIO &other) = delete;
+    AIO &operator=(const AIO &other) = delete;
 
-    // TODO: Destructor to clean up coroutine if interrupted?
+    constexpr AIO(AIO &&other) :
+        coro{std::move(other.coro)} {
+        other.coro = nullptr;
+    }
+
+    AIO &operator=(AIO &&other) {
+        std::swap(coro, other.coro);
+    }
+
+    ~AIO() {
+        if (coro) {
+            coro.destroy();
+        }
+        coro = nullptr;
+    }
 
     [[nodiscard]] OwningHandle init() {
         OwningHandle io_done = Handle::create_event(true, false);
@@ -278,7 +278,6 @@ public:
     }
 };
 
-// TODO: Move to .cpp
 class ParallelAIOs {
 protected:
     std::vector<AIO<void>> tasks;
@@ -286,46 +285,19 @@ protected:
     std::unique_ptr<Handle[]> events;
 
 public:
-    ParallelAIOs(std::vector<AIO<void>> tasks) :
-        tasks{std::move(tasks)},
-        envs{std::make_unique<AIOEnv[]>(size())},
-        events{std::make_unique<Handle[]>(size())} {
-
-        for (size_t i = 0; i < size(); ++i) {
-            envs[i].attach(tasks[i]);
-            events[i] = envs[i].io_done();
-        }
-    }
+    ParallelAIOs(std::vector<AIO<void>> tasks);
 
     size_t size() const {
         return tasks.size();
     }
 
-    void wait_any(DWORD miliseconds = INFINITE) {
-        Handle::wait_multiple({events.get(), size()}, false, miliseconds);
-    }
+    void wait_any(DWORD miliseconds = INFINITE);
 
-    void step() {
-        for (size_t i = 0; i < size(); ++i) {
-            envs[i].step();
-        }
-    }
+    void step();
 
-    bool done() const {
-        for (size_t i = 0; i < size(); ++i) {
-            if (envs[i].current() != nullptr) {
-                return false;
-            }
-        }
-        return true;
-    }
+    bool done() const;
 
-    void run() {
-        while (!done()) {
-            wait_any();
-            step();
-        }
-    }
+    void run();
 };
 
 }  // namespace abel
