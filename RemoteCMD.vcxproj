@@ -85,6 +85,7 @@
     <ClCompile Include="Pipe.cpp" />
     <ClCompile Include="Process.cpp" />
     <ClCompile Include="RemoteCMD.cpp" />
+    <ClCompile Include="Socket.cpp" />
     <ClCompile Include="Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -92,6 +93,7 @@
     <ClInclude Include="Error.hpp" />
     <ClInclude Include="Concurrency.hpp" />
     <ClInclude Include="Handle.hpp" />
+    <ClInclude Include="IOBase.hpp" />
     <ClInclude Include="Pipe.hpp" />
     <ClInclude Include="Process.hpp" />
     <ClInclude Include="Socket.hpp" />

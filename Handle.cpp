@@ -1,7 +1,5 @@
 #include "Handle.hpp"
 
-#include <cassert>
-
 #include "Error.hpp"
 #include "Concurrency.hpp"
 
@@ -37,34 +35,17 @@ OwningHandle Handle::clone() const {
 }
 
 #pragma region IO
-#pragma region Synchronous
-size_t Handle::read_into(std::span<unsigned char> data) {
+eof<size_t> Handle::read_into(std::span<unsigned char> data) {
     DWORD read = 0;
     bool success = ReadFile(raw(), data.data(), (DWORD)data.size(), &read, nullptr);
     if (!success) {
         fail("Failed to read from handle");
     }
 
-    // TODO: EOF
-    // eof = read == 0;
-
-    return read;
+    return eof((size_t)read, read == 0);
 }
 
-void Handle::read_full_into(std::span<unsigned char> data) {
-    // TODO: EOF
-    while (data.size() > 0 /*&& !eof*/) {
-        size_t read = read_into(data);
-        data = data.subspan(read);
-    }
-
-    // TODO: EOF
-    if (/*eof*/ false) {
-        fail("End of stream reached prematurely");
-    }
-}
-
-void Handle::write_from(std::span<const unsigned char> data) {
+eof<size_t> Handle::write_from(std::span<const unsigned char> data) {
     DWORD written = 0;
     bool success = WriteFile(raw(), data.data(), (DWORD)data.size(), &written, nullptr);
     if (!success) {
@@ -72,26 +53,15 @@ void Handle::write_from(std::span<const unsigned char> data) {
     }
     // MSDN seems to imply a successful WriteFile call always writes the entire buffer
     assert(written == data.size());
+
+    return eof((size_t)written, written == 0);
 }
 
-std::vector<unsigned char> Handle::read(size_t size, bool exact) {
-    std::vector<unsigned char> data(size);
-    if (exact) {
-        read_full_into(data);
-    } else {
-        size_t read = read_into(data);
-        data.resize(read);
-    }
-    return data;
-}
-#pragma endregion Synchronous
-
-#pragma region Asynchronous
 void Handle::cancel_async() {
     CancelIo(raw());
 }
 
-AIO<size_t> Handle::read_async(std::span<unsigned char> data) {
+AIO<eof<size_t>> Handle::read_async_into(std::span<unsigned char> data) {
     auto &env = *co_await current_env{};
     OVERLAPPED *overlapped = env.overlapped();
 
@@ -122,14 +92,11 @@ AIO<size_t> Handle::read_async(std::span<unsigned char> data) {
         fail("Failed to get overlapped operation result");
     }
 
-    // TODO: EOF
     // TODO: Perhaps a GetLastError check is necessary instead?
-    //eof = (transmitted == 0);
-
-    co_return transmitted;
+    co_return eof((size_t)transmitted, transmitted == 0);
 }
 
-AIO<void> Handle::write_async(std::span<const unsigned char> data) {
+AIO<eof<size_t>> Handle::write_async_from(std::span<const unsigned char> data) {
     auto &env = *co_await current_env{};
     OVERLAPPED *overlapped = env.overlapped();
 
@@ -160,13 +127,9 @@ AIO<void> Handle::write_async(std::span<const unsigned char> data) {
         fail("Failed to get overlapped operation result");
     }
 
-    // TODO: EOF
     // TODO: Perhaps a GetLastError check is necessary instead?
-    // eof = (transmitted == 0);
-
-    co_return;
+    co_return eof((size_t)transmitted, transmitted == 0);
 }
-#pragma endregion Asynchronous
 #pragma endregion IO
 
 #pragma region Synchronization

@@ -4,10 +4,27 @@
 #include "Pipe.hpp"
 #include "ArgParse.hpp"
 #include "Socket.hpp"
+#include "Concurrency.hpp"
 
 #include <cstdio>
 #include <cstdint>
 #include <string_view>
+
+template <abel::async_io S, abel::async_io D>
+abel::AIO<void> async_connect(S src, D dst) {
+    constexpr size_t buf_size = 4096;
+    std::unique_ptr<unsigned char[buf_size]> buf = std::make_unique<unsigned char[buf_size]>();
+    while (true) {
+        auto read_result = co_await src.read_async_into(buf.get());
+        if (read_result.eof) {
+            break;
+        }
+        auto write_result = co_await dst.write_async_full_from(std::span(buf.get(), read_result.value));
+        if (write_result.eof) {
+            break;
+        }
+    }
+}
 
 int main(int argc, const char **argv) {
     using namespace abel;
@@ -59,7 +76,7 @@ int main(int argc, const char **argv) {
 
     process.process.wait();
 
-    auto result = pipe.read.read(1024, false);
+    auto result = pipe.read.read((size_t)1024, false).value;
 
     printf(
         "<data>\n%s\n</data>\n",

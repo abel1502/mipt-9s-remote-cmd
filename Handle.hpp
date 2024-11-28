@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Error.hpp"
+#include "IOBase.hpp"
 
 #include <Windows.h>
 #include <utility>
@@ -20,7 +21,7 @@ template <typename T>
 class AIO;
 
 // Handle is a non-owning wrapper around a WinAPI HANDLE
-class Handle {
+class Handle : public IOBase {
 protected:
     HANDLE value;
 
@@ -68,37 +69,22 @@ public:
     void close();
 
 #pragma region IO
-#pragma region Synchronous
-    // TODO: Return EOF too
+    // Reads some data into the buffer. Returns the number of bytes read and eof status.
+    eof<size_t> read_into(std::span<unsigned char> data);
 
-    // Reads some data into the buffer. Returns the number of bytes read. Sets eof if the end of the stream is reached.
-    size_t read_into(std::span<unsigned char> data);
+    // Writes the contents. Returns the number of bytes written and eof status. All bytes must be written after a successful invocation.
+    eof<size_t> write_from(std::span<const unsigned char> data);
 
-    // Reads data into the buffer until it is full. Throws and sets eof if end of stream is reached prematurely.
-    void read_full_into(std::span<unsigned char> data);
-
-    // Invokes either read_into or read_full_into and returns the result as a vector
-    std::vector<unsigned char> read(size_t size, bool exact = false);
-
-    // Writes the contents. Writes are always complete in a successful invocation.
-    void write_from(std::span<const unsigned char> data);
-#pragma endregion Synchronous
-
-#pragma region Asynchronous
-    // Note: requires the handle to have been opened with FILE_FLAG_OVERLAPPED
-
-    // TODO: Return EOF too
+    // Note: asynchronous IO requires the handle to have been opened with FILE_FLAG_OVERLAPPED
 
     // Cancels all pending async operations on this handle
     void cancel_async();
 
-    // Same as read_into, but returns an awaitable
-    AIO<size_t> read_async(std::span<unsigned char> data);
+    // Same as read_into, but returns an awaitable. Note: the buf must not be located in a coroutine stack.
+    AIO<eof<size_t>> read_async_into(std::span<unsigned char> data);
 
-    // TODO: Maybe not void? IDK if it can fail
-    // Same as write_from, but returns an awaitable
-    AIO<void> write_async(std::span<const unsigned char> data);
-#pragma endregion Asynchronous
+    // Same as write_from, but returns an awaitable. Note: the buf must not be located in a coroutine stack.
+    AIO<eof<size_t>> write_async_from(std::span<const unsigned char> data);
 #pragma endregion IO
 
 #pragma region Synchronization
@@ -165,8 +151,7 @@ public:
     }
 
     constexpr OwningHandle &operator=(OwningHandle &&other) noexcept {
-        value = other.value;
-        other.value = NULL;
+        std::swap(value, other.value);
         return *this;
     }
 
