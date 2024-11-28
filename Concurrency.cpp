@@ -10,9 +10,18 @@ void AIOEnv::update_current(std::coroutine_handle<> prev, std::coroutine_handle<
 }
 
 void AIOEnv::step() {
-    if (!current_.done() && io_done_.is_signaled()) {
-        current_.resume();
+    if (current_.done()) {
+        return;
     }
+    if (non_io_event_ && non_io_event_.is_signaled()) {
+        // We cannot reset non_io_event_, since it might not be an event at all
+        non_io_event_ = nullptr;
+    } else if (io_done_.is_signaled()) {
+        io_done_.reset();
+    } else {
+        return;
+    }
+    current_.resume();
 }
 
 ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks) :
@@ -22,11 +31,13 @@ ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks) :
 
     for (size_t i = 0; i < size(); ++i) {
         envs[i].attach(tasks[i]);
-        events[i] = envs[i].io_done();
     }
 }
 
 void ParallelAIOs::wait_any(DWORD miliseconds) {
+    for (size_t i = 0; i < size(); ++i) {
+        events[i] = envs[i].event_done();
+    }
     Handle::wait_multiple({events.get(), size()}, false, miliseconds);
 }
 

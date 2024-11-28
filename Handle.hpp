@@ -75,7 +75,7 @@ public:
     // Writes the contents. Returns the number of bytes written and eof status. All bytes must be written after a successful invocation.
     eof<size_t> write_from(std::span<const unsigned char> data);
 
-    // Note: asynchronous IO requires the handle to have been opened with FILE_FLAG_OVERLAPPED
+    // Note: asynchronous IO (below) requires the handle to have been opened with FILE_FLAG_OVERLAPPED
 
     // Cancels all pending async operations on this handle
     void cancel_async();
@@ -110,9 +110,10 @@ public:
 
     // Combines the functionality of wait_timeout, wait (timeout=INFINITE) and is_set (timeout=0)
     // for several handles at once. Returns -1U on timeout
-    template <std::same_as<Handle>... T>
-    static size_t wait_multiple(T ...handles, bool all = false, DWORD miliseconds = INFINITE) {
-        return wait_multiple({handles...}, all, miliseconds);
+    template <bool all = false, DWORD miliseconds = INFINITE, std::convertible_to<Handle>... T>
+    static size_t wait_multiple(const T &... handles) {
+        std::array<Handle, sizeof...(T)> arrHandles{handles...};
+        return wait_multiple(arrHandles, all, miliseconds);
     }
 
     // Same as the template version, but takes a span instead
@@ -124,6 +125,24 @@ public:
 
     void resume_thread() const;
 #pragma endregion Thread
+
+#pragma region Console
+    static Handle get_stdin() {
+        return {GetStdHandle(STD_INPUT_HANDLE)};
+    }
+
+    static Handle get_stdout() {
+        return {GetStdHandle(STD_OUTPUT_HANDLE)};
+    }
+
+    static Handle get_stderr() {
+        return {GetStdHandle(STD_ERROR_HANDLE)};
+    }
+
+    INPUT_RECORD read_console_input();
+
+    size_t console_input_queue_size() const;
+#pragma endregion Console
 };
 
 // A handle that closes itself on destruction

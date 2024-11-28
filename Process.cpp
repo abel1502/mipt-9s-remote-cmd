@@ -7,31 +7,31 @@
 namespace abel {
 
 Process Process::create(
-    const std::wstring &executable,
-    const std::wstring &arguments,
-    const std::wstring &workingDirectory,
+    const std::string &executable,
+    const std::string &arguments,
+    const std::string &workingDirectory,
     bool inheritHandles,
     DWORD creationFlags,
     DWORD startupFlags,
     HANDLE stdInput,
     HANDLE stdOutput,
     HANDLE stdError,
-    std::function<void(STARTUPINFO &)> extraParams
+    std::function<void(STARTUPINFOA &)> extraParams
 ) {
     PROCESS_INFORMATION processInfo{};
 
-    std::wstring fullArgs{};
+    std::string fullArgs{};
     fullArgs.reserve(arguments.size() + executable.size() + 2);
     fullArgs.append(executable);
-    fullArgs.append(L" ");
+    fullArgs.push_back(' ');
     fullArgs.append(arguments);
 
     if (stdInput || stdOutput || stdError) {
         startupFlags |= STARTF_USESTDHANDLES;
     }
 
-    STARTUPINFO startupInfo{
-        .cb = sizeof(STARTUPINFO),
+    STARTUPINFOA startupInfo{
+        .cb = sizeof(STARTUPINFOA),
         .dwFlags = startupFlags,
         .hStdInput = stdInput,
         .hStdOutput = stdOutput,
@@ -42,7 +42,7 @@ Process Process::create(
         extraParams(startupInfo);
     }
 
-    bool success = CreateProcess(
+    bool success = CreateProcessA(
         executable.c_str(),
         fullArgs.data(),
         nullptr,

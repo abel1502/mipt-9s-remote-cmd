@@ -25,16 +25,16 @@ public:
     constexpr Process &operator=(Process &&other) noexcept = default;
 
     static Process create(
-        const std::wstring &executable,
-        const std::wstring &arguments = L"",
-        const std::wstring &workingDirectory = L"",
+        const std::string &executable,
+        const std::string &arguments = "",
+        const std::string &workingDirectory = "",
         bool inheritHandles = false,
         DWORD creationFlags = 0,
         DWORD startupFlags = 0,
         HANDLE stdInput = NULL,
         HANDLE stdOutput = NULL,
         HANDLE stdError = NULL,
-        std::function<void(STARTUPINFO &)> extraParams = nullptr
+        std::function<void(STARTUPINFOA &)> extraParams = nullptr
     );
 };
 

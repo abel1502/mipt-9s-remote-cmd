@@ -54,6 +54,14 @@ struct _impl_promise_return<void> {
         }
     }
 };
+
+template <typename T, std::same_as<T>... U>
+std::vector<T> _impl_make_vector(U &&...values) {
+    std::vector<T> result{};
+    result.reserve(sizeof...(values));
+    (result.emplace_back(std::forward<U>(values)), ...);
+    return result;
+}
 #pragma endregion impl
 
 struct current_coro {
@@ -65,10 +73,16 @@ struct current_env {
 struct io_done_signaled {
 };
 
+// Note: do not use auto-reset events! Non-event awaitables are fine.
+struct event_signaled {
+    Handle event;
+};
+
 class AIOEnv {
 protected:
     OwningHandle io_done_ = Handle::create_event(true, false);  // TODO: Different flags?
     OVERLAPPED overlapped_{.hEvent = io_done_.raw()};
+    Handle non_io_event_ = nullptr;
     std::coroutine_handle<> current_{nullptr};
 
 public:
@@ -85,12 +99,19 @@ public:
     AIOEnv(AIOEnv &&other) = delete;
     AIOEnv &operator=(AIOEnv &&other) = delete;
 
-    Handle io_done() const noexcept {
+    Handle event_done() const noexcept {
+        if (non_io_event_) {
+            return non_io_event_;
+        }
         return io_done_;
     }
 
     OVERLAPPED *overlapped() noexcept {
         return &overlapped_;
+    }
+
+    void set_non_io_event(Handle event) noexcept {
+        non_io_event_ = event;
     }
 
     std::coroutine_handle<> current() const noexcept {
@@ -192,11 +213,32 @@ public:
                 }
 
                 void await_resume() {
-                    env->io_done().reset();
                 }
             };
 
             return Awaiter{env};
+        }
+
+        auto await_transform(event_signaled event) {
+            struct Awaiter {
+                AIOEnv *env;
+                Handle event;
+
+                bool await_ready() noexcept {
+                    return false;
+                }
+
+                void await_suspend(coroutine_ptr coro) {
+                    // Just to verify we are the current coroutine
+                    env->update_current(coro, coro);
+                    env->set_non_io_event(event);
+                }
+
+                void await_resume() {
+                }
+            };
+
+            return Awaiter{env, event.event};
         }
 
         decltype(auto) await_transform(auto &&x) {
@@ -224,7 +266,7 @@ public:
         other.coro = nullptr;
     }
 
-    AIO &operator=(AIO &&other) {
+    constexpr AIO &operator=(AIO &&other) {
         std::swap(coro, other.coro);
     }
 
@@ -285,6 +327,11 @@ protected:
     std::unique_ptr<Handle[]> events;
 
 public:
+    template <std::same_as<AIO<void>> ... T>
+    ParallelAIOs(T &&...tasks) :
+        ParallelAIOs(_impl_make_vector<AIO<void>>(std::forward<T>(tasks)...)) {
+    }
+
     ParallelAIOs(std::vector<AIO<void>> tasks);
 
     size_t size() const {

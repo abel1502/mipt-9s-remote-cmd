@@ -30,6 +30,24 @@ public:
         bool startSuspended = false
     );
 
+    template <typename T>
+    static Thread create(
+        void (T::*func)(),
+        T *obj,
+        bool inheritHandles = false,
+        bool startSuspended = false
+    ) {
+        return create(
+            [](void *arg) -> DWORD {
+                func((T *)arg);
+                return 0;
+            },
+            obj,
+            inheritHandles,
+            startSuspended
+        );
+    }
+
     template <std::invocable<> F>
         requires std::same_as<std::invoke_result_t<F>, DWORD>
     [[nodiscard]] static Owning<Thread, std::unique_ptr<F>> create(
@@ -41,7 +59,9 @@ public:
         return Owning(
             create(
                 [](void *arg) -> DWORD { return std::invoke(*reinterpret_cast<F *>(arg)); },
-                funcPtr.get()
+                funcPtr.get(),
+                inheritHandles,
+                startSuspended
             ),
             std::move(funcPtr)
         );

@@ -2,9 +2,13 @@
 
 #include "Error.hpp"
 #include "Handle.hpp"
+#include "IOBase.hpp"
 
 #include <WinSock2.h>
 #include <Windows.h>
+#include <string>
+#include <cstdint>
+#include <utility>
 
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "Mswsock.lib")
@@ -14,9 +18,11 @@ namespace abel {
 
 class OwningSocket;
 
-class Socket {
+class Socket : public IOBase {
 protected:
     SOCKET socket{INVALID_SOCKET};
+
+    static OwningSocket create();
 
 public:
     constexpr Socket() noexcept :
@@ -32,11 +38,10 @@ public:
     constexpr Socket(Socket &&other) noexcept = default;
     constexpr Socket &operator=(Socket &&other) noexcept = default;
 
-    static OwningSocket try_connect(/* TODO: args */);
+    static OwningSocket connect(std::string host, uint16_t port);
 
-    static OwningSocket connect(/* TODO: args */);
-
-    static OwningSocket listen(/* TODO: args */);
+    // TODO: Accept host?
+    static OwningSocket listen(uint16_t port);
 
     constexpr operator bool() const noexcept {
         return socket != INVALID_SOCKET;
@@ -50,7 +55,11 @@ public:
         return std::forward<Self>(self);
     }
 
-    OwningSocket accept(/* TODO: args */);
+    constexpr SOCKET raw() const {
+        return socket;
+    }
+
+    OwningSocket accept();
 
 #pragma region IO
     // Technically allowed by WinAPI, but may involve overhead delays depending on the implementation

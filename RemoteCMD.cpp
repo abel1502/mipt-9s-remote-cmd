@@ -9,22 +9,98 @@
 #include <cstdio>
 #include <cstdint>
 #include <string_view>
+#include <string>
+#include <span>
 
-template <abel::async_io S, abel::async_io D>
-abel::AIO<void> async_connect(S src, D dst) {
-    constexpr size_t buf_size = 4096;
-    std::unique_ptr<unsigned char[buf_size]> buf = std::make_unique<unsigned char[buf_size]>();
-    while (true) {
-        auto read_result = co_await src.read_async_into(buf.get());
-        if (read_result.eof) {
-            break;
-        }
-        auto write_result = co_await dst.write_async_full_from(std::span(buf.get(), read_result.value));
-        if (write_result.eof) {
-            break;
+class Client {
+protected:
+    abel::Socket socket{};
+
+    Client() {}
+
+public:
+    Client(const Client &) = delete;
+    Client &operator=(const Client &) = delete;
+    Client(Client &&) noexcept = default;
+    Client &operator=(Client &&) noexcept = default;
+
+    static Client connect(const char *host, uint16_t port) {
+        Client cl{};
+        printf("Connecting to server...\n");
+        cl.socket = abel::Socket::connect(host, port);
+        return cl;
+    }
+
+    void run() {
+        //printf("Starting the input -> socket thread...\n");
+        //auto input_thread = abel::Thread::create(&Client::input_to_socket, this, true, true).handle;
+
+        //printf("Starting the socket -> output thread...\n");
+        //auto output_thread = abel::Thread::create(&Client::output_from_socket, this, true, true).handle;
+
+        //printf("Ready!\n");
+        //input_thread.resume_thread();
+        //output_thread.resume_thread();
+        //abel::Handle::wait_multiple<true>(input_thread, output_thread);
+
+        printf("Ready!\n");
+        abel::ParallelAIOs(input_to_socket(), output_from_socket()).run();
+    }
+
+    abel::AIO<void> input_to_socket() {
+        auto console_in = abel::Handle::get_stdin();
+
+        // TODO: Disable echoing?
+
+        std::vector<unsigned char> buffer{};
+
+        while (true) {
+            co_await abel::event_signaled{console_in};
+
+            buffer.clear();
+
+            size_t queue_size = console_in.console_input_queue_size();
+
+            for (size_t i = 0; i < queue_size; ++i) {
+                auto input = console_in.read_console_input();
+                if (input.EventType != KEY_EVENT) {
+                    continue;
+                }
+
+                buffer.push_back(input.Event.KeyEvent.uChar.AsciiChar);
+            }
+
+            if (buffer.empty()) {
+                continue;
+            }
+
+            auto result = co_await socket.write_async_full_from(buffer);
+            if (result.is_eof) {
+                break;
+            }
         }
     }
-}
+
+    abel::AIO<void> output_from_socket() {
+        auto console_out = abel::Handle::get_stdout();
+
+        std::vector<unsigned char> buffer(4096);
+
+        while (true) {
+            auto result = co_await socket.read_async_into(buffer);
+            if (result.is_eof) {
+                break;
+            }
+            console_out.write_full_from(std::span(buffer).subspan(0, result.value));
+        }
+    }
+};
+
+class Server {
+protected:
+
+public:
+};
 
 int main(int argc, const char **argv) {
     using namespace abel;
@@ -63,9 +139,9 @@ int main(int argc, const char **argv) {
 
     auto pipe = Pipe::create(true);
     auto process = Process::create(
-        L"C:\\Windows\\System32\\cmd.exe",
-        L"/c dir",
-        L"",
+        "C:\\Windows\\System32\\cmd.exe",
+        "/c dir",
+        "",
         true,
         0,
         0,

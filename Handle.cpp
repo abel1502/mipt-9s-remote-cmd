@@ -238,4 +238,38 @@ void Handle::resume_thread() const {
 }
 #pragma endregion Thread
 
+#pragma region Console
+INPUT_RECORD Handle::read_console_input() {
+    INPUT_RECORD result{};
+
+    DWORD read = 0;
+    bool success = ReadConsoleInput(
+        raw(),
+        &result,
+        1,
+        &read
+    );
+
+    if (!success) {
+        fail("Failed to read console input");
+    }
+
+    // WinAPI guarantees it's >0, and sucess means it has to be 1
+    assert(read == 1);
+
+    return result;
+}
+
+size_t Handle::console_input_queue_size() const {
+    DWORD result = 0;
+    bool success = GetNumberOfConsoleInputEvents(raw(), &result);
+
+    if (!success) {
+        fail("Failed to get console input queue size");
+    }
+
+    return result;
+}
+#pragma endregion Console
+
 }  // namespace abel
