@@ -112,6 +112,7 @@ AIO<eof<size_t>> Socket::read_async_into(std::span<unsigned char> data) {
         fail_ws("Failed to initiate asynchronous read from socket");
     }
 
+    // TODO: Detect socket closed somehow?
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
@@ -153,6 +154,7 @@ AIO<eof<size_t>> Socket::write_async_from(std::span<const unsigned char> data) {
         fail_ws("Failed to initiate asynchronous read from socket");
     }
 
+    // TODO: Detect socket closed somehow?
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
