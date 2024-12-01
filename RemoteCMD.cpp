@@ -77,7 +77,11 @@ protected:
                 printf("Starting cmd for client...\n");
                 auto cmd = abel::Process::create(
                     "C:\\Windows\\System32\\cmd.exe",
+                    #if 0
                     "/q",  // Because otherwise echo is only done a newline
+                    #else
+                    "",
+                    #endif
                     "",
                     true,
                     CREATE_NO_WINDOW /*CREATE_NEW_CONSOLE*/ /*DETACHED_PROCESS*/,

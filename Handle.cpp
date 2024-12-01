@@ -357,9 +357,10 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
 
     // Without this, input echo is delayed due to cmd.exe's echo cannot be forced immediately
     // With this, echo is doubled because cmd.exe's echo cannot be suppressed either...?
-    // Wait, but it can. We just gotta pass /q...
+    // Wait, but it can. We just gotta pass /q... Alternatively, perhaps double echo is better, since
+    // it handles backspace & stuff correctly
     #if 1
-    printf("%.*s", (int)read, data.data() - read);
+    WriteConsoleA(Handle::get_stdout().raw(), data.data() - read, (DWORD)read, nullptr, nullptr);
     #endif
 
     // TODO: Detect eof from ctrl-something?
