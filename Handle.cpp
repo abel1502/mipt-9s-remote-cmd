@@ -346,6 +346,10 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
         break;*/
 
         char chr = key_event.uChar.AsciiChar;
+        if (chr == 0) {
+            // Things like shift, ctrl, etc.
+            continue;
+        }
         if (chr == '\r') {
             chr = '\n';
         }
@@ -372,7 +376,7 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
     // With this, echo is doubled because cmd.exe's echo cannot be suppressed either...?
     // Wait, but it can. We just gotta pass /q... Alternatively, perhaps double echo is better, since
     // it handles backspace & stuff correctly
-    //WriteConsoleA(Handle::get_stdout().raw(), data.data() - read, (DWORD)read, nullptr, nullptr);
+    WriteConsoleA(Handle::get_stdout().raw(), data.data() - read, (DWORD)read, nullptr, nullptr);
 
     // TODO: Detect eof from ctrl-something?
     // Note: read == 0 does NOT mean eof here, we could've just got exclusively mouse & etc. events
