@@ -115,7 +115,7 @@ public:
     // for several handles at once. Returns -1U on timeout
     template <bool all = false, DWORD miliseconds = INFINITE, std::convertible_to<Handle>... T>
     static size_t wait_multiple(const T &... handles) {
-        std::array<Handle, sizeof...(T)> arrHandles{handles...};
+        Handle arrHandles[sizeof...(T)] = {(Handle)handles...};
         return wait_multiple(arrHandles, all, miliseconds);
     }
 

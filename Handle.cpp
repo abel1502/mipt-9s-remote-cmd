@@ -192,12 +192,14 @@ bool Handle::wait_timeout(DWORD miliseconds) const {
 }
 
 size_t Handle::wait_multiple(std::span<Handle> handles, bool all, DWORD miliseconds) {
-    std::unique_ptr<HANDLE[]> handlesArr = std::make_unique<HANDLE[]>(handles.size());
+    /*std::unique_ptr<HANDLE[]> handlesArr = std::make_unique<HANDLE[]>(handles.size());
     for (size_t i = 0; i < handles.size(); ++i) {
         handlesArr[i] = handles[i].raw();
-    }
+    }*/
 
-    DWORD result = WaitForMultipleObjects((DWORD)handles.size(), handlesArr.get(), all, miliseconds);
+    // Note: Relies on handles being transparent wrappers over HANDLEs
+    static_assert(sizeof(Handle) == sizeof(HANDLE));
+    DWORD result = WaitForMultipleObjects((DWORD)handles.size(), (HANDLE *)handles.data(), all, miliseconds);
 
     if (WAIT_OBJECT_0 <= result && result < WAIT_OBJECT_0 + handles.size()) {
         return result - WAIT_OBJECT_0;
@@ -323,6 +325,7 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
     co_await abel::event_signaled{handle};
 
     size_t read = 0;
+    bool any_text = false;
 
     size_t queue_size = handle.console_input_queue_size();
 
@@ -337,6 +340,10 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
         if (!key_event.bKeyDown) {
             continue;
         }
+
+        /*any_text = true;
+        input.reject();
+        break;*/
 
         char chr = key_event.uChar.AsciiChar;
         if (chr == '\r') {
@@ -355,13 +362,17 @@ AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) 
         data = data.subspan(repeats);
     }
 
+    /*DWORD read = 0;
+    bool success = ReadConsoleA(handle.raw(), data.data(), (DWORD)data.size(), &read, nullptr);
+    if (!success) {
+        fail("Failed to read console input");
+    }*/
+
     // Without this, input echo is delayed due to cmd.exe's echo cannot be forced immediately
     // With this, echo is doubled because cmd.exe's echo cannot be suppressed either...?
     // Wait, but it can. We just gotta pass /q... Alternatively, perhaps double echo is better, since
     // it handles backspace & stuff correctly
-    #if 1
-    WriteConsoleA(Handle::get_stdout().raw(), data.data() - read, (DWORD)read, nullptr, nullptr);
-    #endif
+    //WriteConsoleA(Handle::get_stdout().raw(), data.data() - read, (DWORD)read, nullptr, nullptr);
 
     // TODO: Detect eof from ctrl-something?
     // Note: read == 0 does NOT mean eof here, we could've just got exclusively mouse & etc. events

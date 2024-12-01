@@ -21,7 +21,7 @@ public:
     static Pipe create(bool inheritHandles = true, DWORD bufSize = 0);
 
     // Actually creates a named pipe secretly, because unnamed pipes, as it turns out, do not support overlapped IO.
-    static Pipe create_async(bool inheritHandles = true, DWORD bufSize = 4096);
+    static Pipe create_async(bool inheritHandles = true, DWORD bufSize = 0);
 };
 
 }  // namespace abel

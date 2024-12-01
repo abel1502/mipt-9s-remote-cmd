@@ -163,12 +163,12 @@ template <async_readable S, async_writable D>
 AIO<void> async_transfer(S src, D dst, size_t buf_size = 4096) {
     std::unique_ptr<unsigned char[]> buf = std::make_unique<unsigned char[]>(buf_size);
     while (true) {
-        // printf("!!! async_transfer %p->%p: reading...\n", &src, &dst);
+        //printf("!!! async_transfer %p->%p: reading...\n", &src, &dst);
         auto read_result = co_await src.read_async_into({buf.get(), buf_size});
         if (read_result.is_eof) {
             break;
         }
-        // printf("!!! async_transfer %p->%p: writing %zu...\n", &src, &dst, read_result.value);
+        //printf("!!! async_transfer %p->%p: writing \"%.*s\"...\n", &src, &dst, (int)read_result.value, buf.get());
         auto write_result = co_await dst.write_async_full_from({buf.get(), read_result.value});
         if (write_result.is_eof) {
             break;
