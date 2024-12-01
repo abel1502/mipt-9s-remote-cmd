@@ -116,6 +116,10 @@ public:
             socket = INVALID_SOCKET;
         }
     }
+
+    constexpr Socket borrow() const {
+        return (Socket)*this;
+    }
 };
 
 // An instance of this must be alive throughout the period sockets are intended to be used.

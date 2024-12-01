@@ -10,7 +10,7 @@ void AIOEnv::update_current(std::coroutine_handle<> prev, std::coroutine_handle<
 }
 
 void AIOEnv::step() {
-    if (current_.done()) {
+    if (!current_ || current_.done()) {
         return;
     }
     if (non_io_event_ && non_io_event_.is_signaled()) {
@@ -24,8 +24,8 @@ void AIOEnv::step() {
     current_.resume();
 }
 
-ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks) :
-    tasks{std::move(tasks)},
+ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks_) :
+    tasks{std::move(tasks_)},
     envs{std::make_unique<AIOEnv[]>(size())},
     events{std::make_unique<Handle[]>(size())} {
 

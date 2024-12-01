@@ -31,9 +31,9 @@ public:
         bool inheritHandles = false,
         DWORD creationFlags = 0,
         DWORD startupFlags = 0,
-        HANDLE stdInput = NULL,
-        HANDLE stdOutput = NULL,
-        HANDLE stdError = NULL,
+        Handle stdInput = nullptr,
+        Handle stdOutput = nullptr,
+        Handle stdError = nullptr,
         std::function<void(STARTUPINFOA &)> extraParams = nullptr
     );
 };

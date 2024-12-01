@@ -20,6 +20,9 @@ class OwningHandle;
 template <typename T>
 class AIO;
 
+class ConsoleAsyncIO;
+class ConsoleEventPeek;
+
 // Handle is a non-owning wrapper around a WinAPI HANDLE
 class Handle : public IOBase {
 protected:
@@ -124,24 +127,40 @@ public:
     void suspend_thread() const;
 
     void resume_thread() const;
+
+    void terminate_thread(DWORD exit_code = (DWORD)-1);
+
+    void terminate_process(DWORD exit_code = (DWORD)-1);
+
+    DWORD get_exit_code_thread() const;
+
+    DWORD get_exit_code_process() const;
 #pragma endregion Thread
 
 #pragma region Console
     static Handle get_stdin() {
-        return {GetStdHandle(STD_INPUT_HANDLE)};
+        return Handle{GetStdHandle(STD_INPUT_HANDLE)}.validate();
     }
 
     static Handle get_stdout() {
-        return {GetStdHandle(STD_OUTPUT_HANDLE)};
+        return Handle{GetStdHandle(STD_OUTPUT_HANDLE)}.validate();
     }
 
     static Handle get_stderr() {
-        return {GetStdHandle(STD_ERROR_HANDLE)};
+        return Handle{GetStdHandle(STD_ERROR_HANDLE)}.validate();
     }
+
+    ConsoleEventPeek peek_console_input();
 
     INPUT_RECORD read_console_input();
 
     size_t console_input_queue_size() const;
+
+    ConsoleAsyncIO console_async_io();
+
+    DWORD get_console_mode() const;
+
+    void set_console_mode(DWORD mode);
 #pragma endregion Console
 };
 
@@ -179,6 +198,59 @@ public:
             CloseHandle(value);
             value = NULL;
         }
+    }
+
+    constexpr Handle borrow() const {
+        return (Handle)*this;
+    }
+};
+
+class ConsoleAsyncIO : public IOBase {
+protected:
+    Handle handle;
+
+public:
+    ConsoleAsyncIO(Handle handle) : handle(handle) {}
+
+    ConsoleAsyncIO(const ConsoleAsyncIO &) = default;
+    ConsoleAsyncIO &operator=(const ConsoleAsyncIO &) = default;
+    ConsoleAsyncIO(ConsoleAsyncIO &&) = default;
+    ConsoleAsyncIO &operator=(ConsoleAsyncIO &&) = default;
+
+    AIO<eof<size_t>> read_async_into(std::span<unsigned char> data);
+    AIO<eof<size_t>> write_async_from(std::span<const unsigned char> data);
+};
+
+class ConsoleEventPeek {
+protected:
+    Handle handle;
+    INPUT_RECORD event_{};
+
+public:
+    ConsoleEventPeek(Handle handle);
+
+    ConsoleEventPeek(const ConsoleEventPeek &) = delete;
+    ConsoleEventPeek &operator=(const ConsoleEventPeek &) = delete;
+
+    constexpr ConsoleEventPeek(ConsoleEventPeek &&other) noexcept :
+        handle(std::move(other.handle)) {
+        other.handle = nullptr;
+    }
+
+    constexpr ConsoleEventPeek &operator=(ConsoleEventPeek &&other) noexcept {
+        std::swap(handle, other.handle);
+        return *this;
+    }
+
+    ~ConsoleEventPeek();
+
+    template <typename Self>
+    constexpr auto &event(this Self &self) {
+        return self.event_;
+    }
+
+    constexpr void reject() {
+        handle = nullptr;
     }
 };
 

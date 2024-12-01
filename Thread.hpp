@@ -30,16 +30,15 @@ public:
         bool startSuspended = false
     );
 
-    template <typename T>
+    template <typename T, void (T::*func)()>
     static Thread create(
-        void (T::*func)(),
         T *obj,
         bool inheritHandles = false,
         bool startSuspended = false
     ) {
         return create(
             [](void *arg) -> DWORD {
-                func((T *)arg);
+                (((T *)arg)->*func)();
                 return 0;
             },
             obj,

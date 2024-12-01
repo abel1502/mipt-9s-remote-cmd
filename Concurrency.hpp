@@ -64,8 +64,8 @@ std::vector<T> _impl_make_vector(U &&...values) {
 }
 #pragma endregion impl
 
-struct current_coro {
-};
+//struct current_coro {
+//};
 
 struct current_env {
 };
@@ -80,7 +80,7 @@ struct event_signaled {
 
 class AIOEnv {
 protected:
-    OwningHandle io_done_ = Handle::create_event(true, false);  // TODO: Different flags?
+    OwningHandle io_done_ = Handle::create_event(true, true);  // TODO: Different flags?
     OVERLAPPED overlapped_{.hEvent = io_done_.raw()};
     Handle non_io_event_ = nullptr;
     std::coroutine_handle<> current_{nullptr};
@@ -90,6 +90,7 @@ public:
 
     template <typename T>
     void attach(AIO<T> &aio) {
+        // printf("!!! Root %p: env=%p\n", aio.coro.address(), this);
         aio.coro.promise().env = this;
         current_ = aio.coro;
     }
@@ -136,7 +137,7 @@ public:
             return AIO{coroutine_ptr::from_promise(*this)};
         }
 
-        std::suspend_never initial_suspend() noexcept {
+        std::suspend_always initial_suspend() noexcept {
             return {};
         }
 
@@ -158,7 +159,7 @@ public:
             return Awaiter{};
         }
 
-        auto await_transform(current_coro) {
+        /*auto await_transform(current_coro) {
             struct Awaiter {
                 coroutine_ptr current{};
 
@@ -177,7 +178,7 @@ public:
             };
 
             return Awaiter{};
-        }
+        }*/
 
         auto await_transform(current_env) {
             struct Awaiter {
@@ -277,12 +278,6 @@ public:
         coro = nullptr;
     }
 
-    [[nodiscard]] OwningHandle init() {
-        OwningHandle io_done = Handle::create_event(true, false);
-        coro.promise().init(io_done);
-        return io_done;
-    }
-
     void step() {
         // TODO: ?
         coro.resume();
@@ -302,6 +297,7 @@ public:
 
     template <typename U>
     void await_suspend(std::coroutine_handle<U> master) noexcept {
+        // printf("!!! Child %p -> %p: env=%p\n", master.address(), coro.address(), master.promise().env);
         auto &self_promise = coro.promise();
         auto &master_promise = master.promise();
         self_promise.env = master_promise.env;

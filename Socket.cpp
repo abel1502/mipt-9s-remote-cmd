@@ -1,19 +1,31 @@
 #include "Socket.hpp"
 
+#include <memory>
+
 #include "Concurrency.hpp"
 
 namespace abel {
 
 OwningSocket Socket::create() {
-    return OwningSocket(WSASocketA(AF_INET, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED)).validate();
+    // TODO: Change if I ever want to inherit socket handles. For now it would only serve to leak the bound port
+    return OwningSocket(
+        WSASocketA(
+            AF_INET,
+            SOCK_STREAM,
+            0,
+            nullptr,
+            0,
+            WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT
+        )
+    ).validate();
 }
 
 OwningSocket Socket::connect(std::string host, uint16_t port) {
     OwningSocket result = Socket::create();
 
     timeval timeout{.tv_sec = 15, .tv_usec = 0};
-    int status = WSAConnectByNameA(result.raw(), host.c_str(), std::to_string(port).c_str(), nullptr, nullptr, nullptr, nullptr, &timeout, nullptr);
-    if (status == SOCKET_ERROR) {
+    bool success = WSAConnectByNameA(result.raw(), host.c_str(), std::to_string(port).c_str(), nullptr, nullptr, nullptr, nullptr, &timeout, nullptr);
+    if (!success) {
         fail_ws("Failed to connect to socket");
     }
 
@@ -70,18 +82,28 @@ eof<size_t> Socket::write_from(std::span<const unsigned char> data) {
 // but this verifies this assumption
 static_assert(sizeof(WSAOVERLAPPED) == sizeof(OVERLAPPED));
 
+struct _impl_WSAAsyncData {
+    WSABUF wsabuf;
+    DWORD flags;
+
+    _impl_WSAAsyncData(std::span<unsigned char> data) :
+        wsabuf{.len = (ULONG)data.size(), .buf = (char *)data.data()},
+        flags{0} {
+    }
+};
+
 AIO<eof<size_t>> Socket::read_async_into(std::span<unsigned char> data) {
     auto &env = *co_await current_env{};
     WSAOVERLAPPED *overlapped = (WSAOVERLAPPED *)env.overlapped();
 
-    WSABUF wsabuf{.len = (ULONG)data.size(), .buf = (char *)data.data()};
+    auto wsadata = std::make_unique<_impl_WSAAsyncData>(data);
 
     int status = WSARecv(
         raw(),
-        &wsabuf,
+        &wsadata->wsabuf,
         1,
         nullptr,
-        0,
+        &wsadata->flags,
         overlapped,
         nullptr
     );
@@ -93,12 +115,13 @@ AIO<eof<size_t>> Socket::read_async_into(std::span<unsigned char> data) {
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
+    DWORD flags = 0;
     bool success = WSAGetOverlappedResult(
         raw(),
         overlapped,
         &transmitted,
         false,
-        0
+        &flags
     );
 
     if (!success) {
@@ -114,14 +137,14 @@ AIO<eof<size_t>> Socket::write_async_from(std::span<const unsigned char> data) {
     WSAOVERLAPPED *overlapped = (WSAOVERLAPPED *)env.overlapped();
 
     // Note: const violation is okay because WSASend mustn't write to this buffer
-    WSABUF wsabuf{.len = (ULONG)data.size(), .buf = (char *)data.data()};
+    auto wsadata = std::make_unique<_impl_WSAAsyncData>(std::span{const_cast<unsigned char *>(data.data()), data.size()});
 
     int status = WSASend(
         raw(),
-        &wsabuf,
+        &wsadata->wsabuf,
         1,
         nullptr,
-        0,
+        wsadata->flags,
         overlapped,
         nullptr
     );
@@ -133,12 +156,13 @@ AIO<eof<size_t>> Socket::write_async_from(std::span<const unsigned char> data) {
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
+    DWORD flags = 0;
     bool success = WSAGetOverlappedResult(
         raw(),
         overlapped,
         &transmitted,
         false,
-        0
+        &flags
     );
 
     if (!success) {

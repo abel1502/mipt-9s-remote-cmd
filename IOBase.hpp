@@ -127,7 +127,7 @@ public:
     }
 
     template <typename Self>
-    requires sync_writable<Self>
+    requires async_writable<Self>
     AIO<eof<unit>> write_async_full_from(this Self &self, std::span<const unsigned char> buf) {
         eof<size_t> result{0, false};
         while (buf.size() > 0 && !result.is_eof) {
@@ -159,17 +159,18 @@ public:
     }
 };
 
-template <async_io S, async_io D>
-AIO<void> async_transfer(S src, D dst) {
-    constexpr size_t buf_size = 4096;
-    std::unique_ptr<unsigned char[buf_size]> buf = std::make_unique<unsigned char[buf_size]>();
+template <async_readable S, async_writable D>
+AIO<void> async_transfer(S src, D dst, size_t buf_size = 4096) {
+    std::unique_ptr<unsigned char[]> buf = std::make_unique<unsigned char[]>(buf_size);
     while (true) {
-        auto read_result = co_await src.read_async_into(buf.get());
-        if (read_result.eof) {
+        // printf("!!! async_transfer %p->%p: reading...\n", &src, &dst);
+        auto read_result = co_await src.read_async_into({buf.get(), buf_size});
+        if (read_result.is_eof) {
             break;
         }
-        auto write_result = co_await dst.write_async_full_from(std::span(buf.get(), read_result.value));
-        if (write_result.eof) {
+        // printf("!!! async_transfer %p->%p: writing %zu...\n", &src, &dst, read_result.value);
+        auto write_result = co_await dst.write_async_full_from({buf.get(), read_result.value});
+        if (write_result.is_eof) {
             break;
         }
     }

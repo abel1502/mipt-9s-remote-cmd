@@ -236,14 +236,56 @@ void Handle::resume_thread() const {
         fail("Failed to resume thread");
     }
 }
+
+void Handle::terminate_thread(DWORD exit_code) {
+    bool success = TerminateThread(raw(), exit_code);
+
+    if (!success) {
+        fail("Failed to terminate thread");
+    }
+}
+
+void Handle::terminate_process(DWORD exit_code) {
+    bool success = TerminateProcess(raw(), exit_code);
+
+    if (!success) {
+        fail("Failed to terminate process");
+    }
+}
+
+DWORD Handle::get_exit_code_thread() const {
+    DWORD result = 0;
+    bool success = GetExitCodeThread(raw(), &result);
+
+    if (!success) {
+        fail("Failed to get thread exit code");
+    }
+
+    return result;
+}
+
+DWORD Handle::get_exit_code_process() const {
+    DWORD result = 0;
+    bool success = GetExitCodeProcess(raw(), &result);
+
+    if (!success) {
+        fail("Failed to get process exit code");
+    }
+
+    return result;
+}
 #pragma endregion Thread
 
 #pragma region Console
+ConsoleEventPeek Handle::peek_console_input() {
+    return ConsoleEventPeek(*this);
+}
+
 INPUT_RECORD Handle::read_console_input() {
     INPUT_RECORD result{};
 
     DWORD read = 0;
-    bool success = ReadConsoleInput(
+    bool success = ReadConsoleInputA(
         raw(),
         &result,
         1,
@@ -269,6 +311,111 @@ size_t Handle::console_input_queue_size() const {
     }
 
     return result;
+}
+
+ConsoleAsyncIO Handle::console_async_io() {
+    return ConsoleAsyncIO{*this};
+}
+
+AIO<eof<size_t>> ConsoleAsyncIO::read_async_into(std::span<unsigned char> data) {
+    // printf("!!! console %p: reading...\n", handle.raw());
+
+    co_await abel::event_signaled{handle};
+
+    size_t read = 0;
+
+    size_t queue_size = handle.console_input_queue_size();
+
+    for (size_t i = 0; i < queue_size; ++i) {
+        auto input = handle.peek_console_input();
+        auto event = input.event();
+        if (event.EventType != KEY_EVENT) {
+            continue;
+        }
+
+        auto &key_event = event.Event.KeyEvent;
+        if (!key_event.bKeyDown) {
+            continue;
+        }
+
+        char chr = key_event.uChar.AsciiChar;
+        if (chr == '\r') {
+            chr = '\n';
+        }
+
+        // If the event doesn't fit in the buffer's remainder, don't consume it either
+        unsigned repeats = key_event.wRepeatCount;
+        if (repeats > data.size()) {
+            input.reject();
+            break;
+        }
+
+        read += repeats;
+        std::fill_n(data.begin(), repeats, chr);
+        data = data.subspan(repeats);
+    }
+
+    // Without this, input echo is delayed due to cmd.exe's echo cannot be forced immediately
+    // With this, echo is doubled because cmd.exe's echo cannot be suppressed either...?
+    // Wait, but it can. We just gotta pass /q...
+    #if 1
+    printf("%.*s", (int)read, data.data() - read);
+    #endif
+
+    // TODO: Detect eof from ctrl-something?
+    // Note: read == 0 does NOT mean eof here, we could've just got exclusively mouse & etc. events
+    co_return eof(read, false);
+}
+
+ConsoleEventPeek::ConsoleEventPeek(Handle handle) :
+    handle{handle} {
+
+    DWORD read = 0;
+    bool success = PeekConsoleInputA(
+        handle.raw(),
+        &event_,
+        1,
+        &read
+    );
+
+    if (!success) {
+        fail("Failed to peek console input");
+    }
+
+    // WinAPI guarantees it's >0, and sucess means it has to be 1
+    assert(read == 1);
+}
+
+ConsoleEventPeek::~ConsoleEventPeek() {
+    if (handle) {
+        handle.read_console_input();
+    }
+}
+
+// Note: actually sync under the hood; is needed to fake async transfers into console output
+AIO<eof<size_t>> ConsoleAsyncIO::write_async_from(std::span<const unsigned char> data) {
+    // printf("!!! console %p: writing...\n", handle.raw());
+
+    co_return handle.write_from(data);
+}
+
+DWORD Handle::get_console_mode() const {
+    DWORD result{};
+    bool success = GetConsoleMode(raw(), &result);
+
+    if (!success) {
+        fail("Failed to get console mode");
+    }
+
+    return result;
+}
+
+void Handle::set_console_mode(DWORD mode) {
+    bool success = SetConsoleMode(raw(), mode);
+
+    if (!success) {
+        fail("Failed to set console mode");
+    }
 }
 #pragma endregion Console
 

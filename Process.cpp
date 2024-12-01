@@ -13,9 +13,9 @@ Process Process::create(
     bool inheritHandles,
     DWORD creationFlags,
     DWORD startupFlags,
-    HANDLE stdInput,
-    HANDLE stdOutput,
-    HANDLE stdError,
+    Handle stdInput,
+    Handle stdOutput,
+    Handle stdError,
     std::function<void(STARTUPINFOA &)> extraParams
 ) {
     PROCESS_INFORMATION processInfo{};
@@ -33,9 +33,9 @@ Process Process::create(
     STARTUPINFOA startupInfo{
         .cb = sizeof(STARTUPINFOA),
         .dwFlags = startupFlags,
-        .hStdInput = stdInput,
-        .hStdOutput = stdOutput,
-        .hStdError = stdError,
+        .hStdInput = stdInput.raw(),
+        .hStdOutput = stdOutput.raw(),
+        .hStdError = stdError.raw(),
     };
 
     if (extraParams) {
