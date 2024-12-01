@@ -334,6 +334,12 @@ public:
         return tasks.size();
     }
 
+    template <typename Self>
+    decltype(auto) until(this Self &&self, Handle event) {
+        self.events[0] = event;
+        return std::forward<Self>(self);
+    }
+
     void wait_any(DWORD miliseconds = INFINITE);
 
     void step();

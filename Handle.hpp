@@ -135,6 +135,14 @@ public:
     DWORD get_exit_code_thread() const;
 
     DWORD get_exit_code_process() const;
+
+    bool thread_running() const {
+        return get_exit_code_thread() == STILL_ACTIVE;
+    }
+
+    bool process_running() const {
+        return get_exit_code_process() == STILL_ACTIVE;
+    }
 #pragma endregion Thread
 
 #pragma region Console

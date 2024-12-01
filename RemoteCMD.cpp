@@ -104,7 +104,6 @@ protected:
         abel::OwningHandle thread{};
         abel::Pipe pipe_out{};
         abel::Pipe pipe_in{};
-        std::atomic<bool> dead{false};
 
         void handle() {
             try {
@@ -127,7 +126,6 @@ protected:
                     }
                 );
 
-                //printf("Client ready!\n");
                 //abel::ParallelAIOs(
                 //    abel::async_transfer(socket.borrow(), socket.borrow())
                 //).run();
@@ -138,17 +136,19 @@ protected:
                 abel::ParallelAIOs(
                     abel::async_transfer(pipe_out.read.borrow(), socket.borrow()),
                     abel::async_transfer(socket.borrow(), pipe_in.write.borrow())
-                ).run();
+                ).until(cmd.process).run();
 
-                if (cmd.process.get_exit_code_process() == STILL_ACTIVE) {
+                // Gracefully close connection
+                socket.shutdown();
+
+                if (cmd.process.process_running()) {
                     cmd.process.terminate_process();
                 }
                 cmd.process.wait();
             } catch (std::exception &e) {
+                // Note: this will crash in service mode, but that's acceptable for error handling
                 printf("Client error: %s\n", e.what());
             }
-
-            dead.store(true);
         }
     };
 
@@ -185,24 +185,15 @@ public:
             std::erase_if(
                 clients,
                 [](const auto &client) {
-                    return client->dead.load();
+                    return !client->thread.thread_running();
                 }
             );
 
-            log("Serving new client");
+            // printf("Serving new client\n");
             auto client = std::make_unique<ClientConn>();
             client->socket = std::move(clientSocket);
             client->thread = abel::Thread::create<ClientConn, &ClientConn::handle>(client.get()).handle;
             clients.push_back(std::move(client));
-        }
-    }
-
-    template <DWORD kind = EVENTLOG_INFORMATION_TYPE, typename... Args>
-    void log(const char *message, Args... args) {
-        if (service_mode) {
-            ServerSvc::get().log<kind>(message, args...);
-        } else {
-            printf(message, args...);
         }
     }
 

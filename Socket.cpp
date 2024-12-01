@@ -108,11 +108,18 @@ AIO<eof<size_t>> Socket::read_async_into(std::span<unsigned char> data) {
         nullptr
     );
 
-    if (status == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
-        fail_ws("Failed to initiate asynchronous read from socket");
+    if (status == SOCKET_ERROR) {
+        switch (WSAGetLastError()) {
+        case WSA_IO_PENDING:
+            break;
+        case WSAECONNRESET:
+        case WSAEDISCON:
+            co_return eof((size_t)0, true);
+        default:
+            fail_ws("Failed to initiate asynchronous read from socket");
+        }
     }
 
-    // TODO: Detect socket closed somehow?
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
@@ -126,10 +133,15 @@ AIO<eof<size_t>> Socket::read_async_into(std::span<unsigned char> data) {
     );
 
     if (!success) {
-        fail_ws("Failed to get overlapped operation result");
+        switch (WSAGetLastError()) {
+        case WSAECONNRESET:
+        case WSAEDISCON:
+            co_return eof((size_t)transmitted, true);
+        default:
+            fail_ws("Failed to get overlapped operation result");
+        }
     }
 
-    // TODO: Perhaps a WSAGetLastError check is necessary instead?
     co_return eof((size_t)transmitted, transmitted == 0);
 }
 
@@ -150,11 +162,18 @@ AIO<eof<size_t>> Socket::write_async_from(std::span<const unsigned char> data) {
         nullptr
     );
 
-    if (status == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
-        fail_ws("Failed to initiate asynchronous read from socket");
+    if (status == SOCKET_ERROR) {
+        switch (WSAGetLastError()) {
+        case WSA_IO_PENDING:
+            break;
+        case WSAECONNRESET:
+        case WSAEDISCON:
+            co_return eof((size_t)0, true);
+        default:
+            fail_ws("Failed to initiate asynchronous write to socket");
+        }
     }
 
-    // TODO: Detect socket closed somehow?
     co_await io_done_signaled{};
 
     DWORD transmitted = 0;
@@ -168,11 +187,23 @@ AIO<eof<size_t>> Socket::write_async_from(std::span<const unsigned char> data) {
     );
 
     if (!success) {
-        fail_ws("Failed to get overlapped operation result");
+        switch (WSAGetLastError()) {
+        case WSAECONNRESET:
+        case WSAEDISCON:
+            co_return eof((size_t)transmitted, true);
+        default:
+            fail_ws("Failed to get overlapped operation result");
+        }
     }
 
-    // TODO: Perhaps a WSAGetLastError check is necessary instead?
     co_return eof((size_t)transmitted, transmitted == 0);
+}
+
+void Socket::shutdown(int how) {
+    int status = ::shutdown(raw(), how);
+    if (status == SOCKET_ERROR) {
+        fail_ws("Failed to shutdown socket");
+    }
 }
 
 }  // namespace abel

@@ -85,6 +85,8 @@ public:
     // Same as write_from, but returns an awaitable. Note: the buf must not be located in a coroutine stack.
     AIO<eof<size_t>> write_async_from(std::span<const unsigned char> data);
 #pragma endregion IO
+
+    void shutdown(int how = SD_BOTH);
 };
 
 class OwningSocket : public Socket {

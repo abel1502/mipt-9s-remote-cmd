@@ -27,7 +27,7 @@ void AIOEnv::step() {
 ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks_) :
     tasks{std::move(tasks_)},
     envs{std::make_unique<AIOEnv[]>(size())},
-    events{std::make_unique<Handle[]>(size())} {
+    events{std::make_unique<Handle[]>(size() + 1)} {
 
     for (size_t i = 0; i < size(); ++i) {
         envs[i].attach(tasks[i]);
@@ -36,9 +36,16 @@ ParallelAIOs::ParallelAIOs(std::vector<AIO<void>> tasks_) :
 
 void ParallelAIOs::wait_any(DWORD miliseconds) {
     for (size_t i = 0; i < size(); ++i) {
-        events[i] = envs[i].event_done();
+        events[i + 1] = envs[i].event_done();
     }
-    Handle::wait_multiple({events.get(), size()}, false, miliseconds);
+
+    std::span<Handle> targets{events.get(), size() + 1};
+    if (!targets[0]) {
+        // No cancellation event
+        targets = targets.subspan(1);
+    }
+
+    Handle::wait_multiple(targets, false, miliseconds);
 }
 
 void ParallelAIOs::step() {
@@ -48,6 +55,11 @@ void ParallelAIOs::step() {
 }
 
 bool ParallelAIOs::done() const {
+    // Short-circuit cancellation
+    if (events[0] && events[0].is_signaled()) {
+        return true;
+    }
+
     for (size_t i = 0; i < size(); ++i) {
         if (envs[i].current() != nullptr) {
             return false;
