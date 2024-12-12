@@ -58,7 +58,7 @@ protected:
             Handle::wait_multiple(thread, stop_event);
 
             // Probably not necessary, as the kernel will clean up all our threads anyway
-            // thread.terminate_thread();
+            thread.terminate_thread();
 
             report_status(SERVICE_STOPPED, 0);
         } catch (std::exception &e) {
